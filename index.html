@@ -98,6 +98,26 @@ label{display:block;font-size:12px;color:var(--mute);margin:10px 0 5px;letter-sp
 details summary{list-style:none}details summary::-webkit-details-marker{display:none}
 a{color:var(--gold2)}
 ::selection{background:rgba(214,178,98,.35)}
+
+.ros{display:block;width:100%;max-width:380px;margin:6px auto 0;overflow:visible}
+.ros .pt{fill:rgba(255,255,255,.055);stroke:rgba(201,169,110,.18);stroke-width:.5}
+.ros .pf{fill:url(#gf);opacity:.9;animation:bloom 1.6s cubic-bezier(.22,.61,.36,1) both;transform-origin:0 0}
+.ros .pd{opacity:1;filter:drop-shadow(0 0 3px rgba(230,212,171,.35))}
+.ros .pfl{fill:none;stroke:var(--warn);stroke-width:1.4;stroke-dasharray:3 2}
+.ros .jn{font:500 6.5px Inter,sans-serif;fill:rgba(239,233,220,.35);text-anchor:middle;dominant-baseline:middle}
+.ros .jd{fill:rgba(34,26,12,.75);font-weight:700}
+.ros .jstar{fill:#f6ebcf}
+.ros .st{fill:rgba(255,255,255,.035)}
+.ros .sm{fill:var(--g2);opacity:.9}
+.ros .sf{fill:var(--warn);animation:ember 6s ease-in-out infinite}
+.ros .sg{fill:none;stroke:var(--gold2);stroke-width:.8;stroke-dasharray:2 1.6;opacity:.8}
+.ros .sep{stroke:var(--bg);stroke-width:.5}
+.ros .hit{fill:transparent;cursor:pointer}.ros .hit:hover{fill:rgba(230,212,171,.12)}
+.ros .cbig{font:600 34px Fraunces,Georgia,serif;fill:#efe2c2;text-anchor:middle}
+.ros .csub{font:500 8px Inter,sans-serif;fill:var(--mute);text-anchor:middle;letter-spacing:1.5px;text-transform:uppercase}
+.ros .csub2{font:500 9px Inter,sans-serif;fill:var(--gold);text-anchor:middle}
+@keyframes bloom{from{opacity:0;transform:scale(.85)}}
+.flagcard{box-shadow:var(--shadow),inset 3px 0 0 var(--warn)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -188,7 +208,54 @@ function classCard(cls,detail){
     if(c.prog.length)h+=`<p class="mute" style="margin:12px 0 4px">In progress</p><div class="list">${c.prog.sort((a,b)=>a.s-b.s).map(p=>`<div class="it"><div>${esc(sname(p.s))}<br><span class="mute">${p.have} of ${Q.sc[p.s-1]*p.n} ayat${p.n>1?` (${p.n} boys)`:""}</span></div><span class="pill">${Math.round(p.have/(Q.sc[p.s-1]*p.n)*100)}%</span></div>`).join("")}</div>`;}
   return h+`</div>`;
 }
-function dashboard(name,entries,goal){
+const posA=id=>{if(id>NA)return 1;const p=pageOf(id);return ((p-1)+(id-Q.pg[p-1])/pageAyat(p))/NP};
+const pt=(a,r)=>{const t=a*2*Math.PI-Math.PI/2;return [(r*Math.cos(t)).toFixed(2),(r*Math.sin(t)).toFixed(2)]};
+function sector(a0,a1,ri,ro){if(a1-a0>=0.9999)a1=a0+0.9999;const L=(a1-a0)>.5?1:0,[x0,y0]=pt(a0,ro),[x1,y1]=pt(a1,ro),[x2,y2]=pt(a1,ri),[x3,y3]=pt(a0,ri);
+  return `M${x0} ${y0}A${ro} ${ro} 0 ${L} 1 ${x1} ${y1}L${x2} ${y2}A${ri} ${ri} 0 ${L} 0 ${x3} ${y3}Z`}
+function flagMask(flags){const f=new Uint8Array(NA+1);for(const x of flags||[])for(let a=x.from;a<=x.to;a++)f[gid(x.surah,a)]=1;return f}
+function goalMask(goal){const g=new Uint8Array(NA+1);if(goal&&goal.items)for(const it of goal.items)for(let a=it.f;a<=it.t;a++)g[gid(it.surah,a)]=1;return g}
+function rosette(m,flags,goal){
+  const F=flagMask(flags),G=goalMask(goal),R1=60,R2=116,R3=122,R4=146,R5=152,gap=.0012;let o="";
+  // juz petals
+  for(let j=1;j<=30;j++){const s0=Q.jz[j-1],s1=Q.jz[j],a0=posA(s0)+gap,a1=posA(s1)-gap;let have=0,fl=0;for(let i=s0;i<s1;i++){if(m.mem[i])have++;if(F[i])fl++}
+    const pct=have/(s1-s0),done=pct>=1;
+    o+=`<path class="pt" d="${sector(a0,a1,R1,R2)}"/>`;
+    if(pct>0)o+=`<path class="pf${done?" pd":""}" style="animation-delay:${(j*0.06).toFixed(2)}s" d="${sector(a0,a1,R1,R1+(R2-R1)*pct)}"/>`;
+    if(fl)o+=`<path class="pfl" d="${sector(a0,a1,R1,R2)}"/>`;
+    const [lx,ly]=pt((a0+a1)/2,R1+10);o+=`<text class="jn${done?" jd":""}" x="${lx}" y="${ly}">${j}</text>`;
+    if(done){const [sx,sy]=pt((a0+a1)/2,R2-9);o+=`<use href="#st" x="${sx}" y="${sy}" class="jstar"/>`}}
+  // surah ring
+  o+=`<path class="st" d="${sector(0,0.9999,R3,R4)}"/>`;
+  let i=1;while(i<=NA){const code=F[i]?2:m.mem[i]?1:G[i]?3:0;let k=i;while(k+1<=NA&&(F[k+1]?2:m.mem[k+1]?1:G[k+1]?3:0)===code)k++;
+    const a0=posA(i),a1=posA(k+1);
+    if(code===1)o+=`<path class="sm" d="${sector(a0,a1,R3,R4)}"/>`;
+    else if(code===2)o+=`<path class="sf" d="${sector(a0,a1,R3,R4)}"/>`;
+    else if(code===3)o+=`<path class="sg" d="${sector(a0,a1,R4+2,R5)}"/>`;
+    i=k+1}
+  for(let s=1;s<=114;s++){const a=posA(Q.ss[s-1]);const [x0,y0]=pt(a,R3),[x1,y1]=pt(a,R4);o+=`<line class="sep" x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}"/>`;
+    o+=`<path class="hit" data-s="${s}" d="${sector(a,posA(Q.ss[s-1]+Q.sc[s-1]),R3-2,R5+4)}"/>`}
+  const juzEq=m.full/20;
+  return `<svg viewBox="-170 -170 340 340" class="ros"><defs>
+   <radialGradient id="gf" cx="0" cy="0" r="120" gradientUnits="userSpaceOnUse"><stop offset=".45" stop-color="#9a7c47"/><stop offset=".8" stop-color="#c9a96e"/><stop offset="1" stop-color="#ead9b2"/></radialGradient>
+   <symbol id="st" viewBox="-10 -10 20 20" width="9" height="9" overflow="visible"><path transform="translate(-4.5 -4.5) scale(.45)" d="M0 -10L2.9 -4.1 9.5 -3.1 4.7 1.5 5.9 8.1 0 5 -5.9 8.1 -4.7 1.5 -9.5 -3.1 -2.9 -4.1Z" transform-origin="0 0"/></symbol>
+   <pattern id="gp" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M7 0L9 5 14 7 9 9 7 14 5 9 0 7 5 5Z" fill="none" stroke="rgba(230,212,171,.12)" stroke-width=".5"/></pattern></defs>
+   <circle r="${R1-4}" fill="url(#gp)" stroke="rgba(201,169,110,.25)" stroke-width=".6"/>
+   ${o}
+   <text class="cbig" y="4">${fmt(juzEq)}</text><text class="csub" y="20">of 30 juz</text><text class="csub2" y="33">${m.surahsDone.length} surah${m.surahsDone.length===1?"":"s"}</text>
+  </svg>`;
+}
+function bindRosette(m,flags,goal){
+  const svg=document.querySelector(".ros");if(!svg)return;const F=flagMask(flags),G=goalMask(goal);let tip;
+  svg.onclick=ev=>{const s=+ev.target.dataset.s;if(!s)return;let h=0,f=0,g=0;const n=Q.sc[s-1];for(let a=1;a<=n;a++){const i=gid(s,a);if(m.mem[i])h++;if(F[i])f++;if(G[i]&&!m.mem[i])g++}
+    tip&&tip.remove();tip=document.createElement("div");tip.className="tip";
+    tip.innerHTML=`<b>${esc(sname(s))}</b><br>${h} of ${n} ayat memorised${f?`<br><span style="color:var(--warn)">${f} ayat need revision</span>`:""}${g?`<br><span style="color:var(--gold2)">${g} ayat in goal</span>`:""}`;
+    document.body.appendChild(tip);tip.style.left=Math.max(8,Math.min(innerWidth-240,ev.clientX-110))+"px";tip.style.top=(ev.clientY-90)+"px";setTimeout(()=>tip&&tip.remove(),4000)};
+}
+function flagsCard(flags,teacher){
+  if(!flags||!flags.length)return teacher?"":`<div class="card"><h3>Revision needed</h3><p class="mute" style="margin:0">Nothing marked by the Ustad. Keep up regular revision.</p></div>`;
+  return `<div class="card flagcard"><h3>Revision needed · marked by Ustad</h3><div class="list">${flags.map(x=>`<div class="it"><div><b>${esc(EN[x.surah-1])}</b> ${x.from===1&&x.to===Q.sc[x.surah-1]?"(whole surah)":`ayat ${x.from}–${x.to}`}<br><span class="mute">${x.date}${x.note?" · "+esc(x.note):""}</span></div>${teacher?`<button class="small" data-fd="${x.id}">Completed</button>`:`<span class="pill">to revise</span>`}</div>`).join("")}</div></div>`;
+}
+function dashboard(name,entries,goal,flags,teacher){
   const m=model(entries);
   const trend=(a,b)=>a>b?`<span class="up">▲ ${fmt(a-b)}</span>`:a<b?`<span class="down">▼ ${fmt(b-a)}</span>`:`<span class="mute">=</span>`;
   const mpp=m.cur.nw?(m.cur.mk/m.cur.nw):null,mppPrev=m.prev.nw?(m.prev.mk/m.prev.nw):null;
@@ -202,11 +269,11 @@ function dashboard(name,entries,goal){
   return `
   <div class="card hadith"><div class="ar">اقْرَأْ وَارْتَقِ</div><p>"Recite and rise": your rank is at the last ayah you recite. (Abu Dawud, Tirmidhi)</p></div>
   ${goalCard(goal,m.mem,name)}
-  <div class="card"><h3>${esc(name)}'s ascent</h3>
-    <div class="row" style="align-items:flex-end"><div><div class="big">${fmt(juzEq)} <span class="mute" style="font-size:15px">of 30 juz</span></div><div class="mute">${m.juzDone.length} juz · ${m.surahsDone.length} surah${m.surahsDone.length===1?"":"s"} complete · ${m.full} pages</div></div></div>
-    <div class="stairs">${stairs}</div>
-    ${m.juzDone.length||m.surahsDone.length?`<div class="ms">${m.juzDone.map(j=>`<span>Juz ${j} complete</span>`).join("")}</div>`:""}
-  </div>
+  ${teacher?"":flagsCard(flags,false)}
+  <div class="card"><h3>${esc(name)}'s Hifdh at a glance</h3>${rosette(m,flags,goal)}
+    <div class="legend" style="justify-content:center"><span><i style="background:#c9a96e"></i>Memorised (inner: juz, outer: surahs)</span><span><i style="background:var(--warn)"></i>Revision needed</span><span><i style="background:transparent;box-shadow:inset 0 0 0 1px var(--gold2)"></i>Goal</span></div>
+    ${m.juzDone.length?`<div class="ms" style="justify-content:center;margin-top:10px">${m.juzDone.map(j=>`<span>Juz ${j} complete</span>`).join("")}</div>`:""}
+    <p class="mute" style="margin:10px 0 0;text-align:center">Tap any part of the outer ring to see that surah.</p></div>
   ${m.nudges.length?`<div class="card"><h3>So close</h3>${m.nudges.slice(0,3).map(n=>`<div class="nudge"><div class="n">${n.n}</div><div>${n.t}</div></div>`).join("")}</div>`:""}
   <div class="card"><h3>This week vs last week</h3>
     <div class="stats">
@@ -218,12 +285,6 @@ function dashboard(name,entries,goal){
     <p class="mute" style="margin:8px 0 4px">Days practised this week</p><div class="dots">${dots}</div>
     <p class="mute" style="margin:8px 0 0">Personal best week: ${fmt(m.best)} new pages</p>
   </div>
-  ${m.fading.length?`<div class="card"><h3>Needs revision before it fades</h3><div class="list">${m.fading.slice(0,5).map(x=>`<div class="it"><div><b>Page ${x.p}</b> <span class="mute">${esc(surahsOnPage(x.p))}</span></div><span class="pill">${x.age} days</span></div>`).join("")}</div>${m.fading.length>5?`<p class="mute">+${m.fading.length-5} more pages</p>`:""}</div>`:""}
-  <div class="card"><h3>The Mushaf: 604 pages</h3>
-    <div class="map" id="map">${map}</div>
-    <div class="legend"><span><i style="background:var(--g)"></i>Strong (≤7 days)</span><span><i style="background:var(--g2)"></i>Good (≤14)</span><span><i style="background:var(--g3)"></i>Weak (≤30)</span><span><i style="background:var(--warn)"></i>Fading (30+)</span><span><i style="background:linear-gradient(0deg,var(--g3) 50%,var(--track) 50%)"></i>In progress</span></div>
-    <p class="mute" style="margin:8px 0 0">Each square is one page. Pages fade if not revised. Tap a square for details.</p>
-  </div>
   ${pend.length?`<div class="card"><h3>Waiting for teacher</h3><div class="list">${pend.map(e=>`<div class="it"><div>${e.kind==="new"?"New":"Revision"}: ${esc(EN[e.surah-1])} ${e.from}–${e.to} <span class="mute">· ${e.date}</span></div><span class="pill">pending</span></div>`).join("")}</div></div>`:""}`;
 }
 function bindMap(entries){
@@ -232,11 +293,11 @@ function bindMap(entries){
     tip.innerHTML=`Page ${p} · Juz ${juzOfPage(p)}<br>${esc(surahsOnPage(p))}<br>${x.c}/${x.n} ayat${x.c?` · last practised ${x.age} day${x.age===1?"":"s"} ago`:""}`;
     document.body.appendChild(tip);const r=ev.target.getBoundingClientRect();tip.style.left=Math.max(8,Math.min(innerWidth-230,r.left-100))+"px";tip.style.top=(r.top+scrollY-70)+"px";setTimeout(()=>tip&&tip.remove(),3500)};
 }
-function weeklyText(name,entries){
+function weeklyText(name,entries,flags){
   const m=model(entries);const ver=entries.filter(e=>e.status==="verified"&&e.kind!=="prior"&&dnum(e.date)>=m.wk);
   const nw=ver.filter(e=>e.kind==="new").map(e=>`${EN[e.surah-1]} ${e.from}-${e.to}`);
   let t=`Assalamu alaikum. Weekly Hifdh update for ${name}:\n\nNew memorisation: ${nw.length?nw.join(", "):"none this week"} (${fmt(m.cur.nw)} pages)\nRevision: ${fmt(m.cur.rv)} pages\nMistakes per page: ${m.cur.nw?fmt(m.cur.mk/m.cur.nw):"-"}\nDays practised: ${m.cur.days.size}\nTotal: ${fmt(m.full/20)} juz (${m.full} pages)`;
-  if(m.fading.length)t+=`\n\nPlease revise at home: ${m.fading.slice(0,3).map(x=>`page ${x.p} (${surahsOnPage(x.p)})`).join("; ")}`;
+  if(flags&&flags.length)t+=`\n\nRevision needed (marked by Ustad): ${flags.map(x=>`${EN[x.surah-1]}${x.from===1&&x.to===Q.sc[x.surah-1]?"":` ${x.from}-${x.to}`}`).join(", ")}`;
   if(m.nudges[0])t+=`\nNext target: ${m.nudges[0].t}`;
   return t+"\n\nJazakAllahu khairan";
 }
@@ -319,8 +380,8 @@ function parentLogin(){
 }
 async function parentView(c,d){
   try{d=d||await rpc("parent_get",{p_code:c.code,p_pin:c.pin})}catch(e){S.del("par");return parentLogin()}
-  app.innerHTML=head(esc(d.boy.name),1)+`<button id="lg" style="width:100%;margin-bottom:12px;padding:14px">+ Log today's Hifdh</button><div class="card" id="lgc" style="display:none"><h2>Log today's Hifdh</h2>${entryForm("pf",[["new","New lesson"],["revision","Revision"]])}<p class="mute" style="margin:8px 0 0">The teacher checks each entry before it counts.</p></div>`+dashboard(d.boy.name,d.entries,d.boy.goal);
-  $("#out").onclick=()=>{S.del("par");home()};bindMap(d.entries);$("#lg").onclick=()=>{$("#lgc").style.display="block";$("#lg").style.display="none"};
+  app.innerHTML=head(esc(d.boy.name),1)+`<button id="lg" style="width:100%;margin-bottom:12px;padding:14px">+ Log today's Hifdh</button><div class="card" id="lgc" style="display:none"><h2>Log today's Hifdh</h2>${entryForm("pf",[["new","New lesson"],["revision","Revision"]])}<p class="mute" style="margin:8px 0 0">The teacher checks each entry before it counts.</p></div>`+dashboard(d.boy.name,d.entries,d.boy.goal,d.flags);
+  $("#out").onclick=()=>{S.del("par");home()};bindRosette(model(d.entries),d.flags,d.boy.goal);$("#lg").onclick=()=>{$("#lgc").style.display="block";$("#lg").style.display="none"};
   bindForm("pf",async v=>{const r=await rpc("parent_add_many",{p_code:c.code,p_pin:c.pin,p_items:v.items,p_mistakes:v.mistakes,p_date:v.date});toast("Saved. Waiting for teacher to verify.");parentView(c,r)});
 }
 async function teacherLogin(){
@@ -346,7 +407,7 @@ async function teacherView(pin,d){
   if(TAB==="boys"){
     body=`<div class="card"><h2>Add a boy</h2><div class="row"><input id="nb" placeholder="Full name"><button id="ab" style="flex:0 0 auto">Add</button></div><div id="newcode"></div></div><div class="card list">`+
     d.boys.map(b=>{const m=model(b.entries);const lastD=b.entries.filter(e=>e.status==="verified"&&e.kind!=="prior").map(e=>dnum(e.date)).sort().pop();
-      return `<div class="it" style="cursor:pointer" data-b="${b.id}"><div><b>${esc(b.name)}</b>${b.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">${(()=>{const g=goalProgress(b.goal,m.mem);return g?`Goal ${esc(b.goal.label)}: ${g.pct}% · `:"No goal · "})()}${fmt(m.full/20)} juz · this week ${fmt(m.cur.nw)} new pg · ${m.fading.length} fading · ${lastD?`last ${m.T-lastD}d ago`:"no sessions yet"}</span></div><span class="mute">›</span></div>`}).join("")+`</div>`;
+      return `<div class="it" style="cursor:pointer" data-b="${b.id}"><div><b>${esc(b.name)}</b>${b.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">${(()=>{const g=goalProgress(b.goal,m.mem);return g?`Goal ${esc(b.goal.label)}: ${g.pct}% · `:"No goal · "})()}${fmt(m.full/20)} juz · this week ${fmt(m.cur.nw)} new pg · ${(b.flags||[]).length} revision needed · ${lastD?`last ${m.T-lastD}d ago`:"no sessions yet"}</span></div><span class="mute">›</span></div>`}).join("")+`</div>`;
   }
   if(TAB==="class")body=`<div class="card"><h2>Change teacher PIN</h2><div class="row"><input id="np" type="password" inputmode="numeric" placeholder="New PIN (6+ digits)"><button id="cp" style="flex:0 0 auto">Change</button></div></div>`;
   app.innerHTML=head("Teacher",1)+tabs+body;
@@ -356,28 +417,44 @@ async function teacherView(pin,d){
     try{const r=await rpc("teacher_review",{p_pin:pin,p_id:id,p_status:b.dataset.v?"verified":"rejected",p_mistakes:+app.querySelector(`[data-mk="${id}"]`).value||0});teacherView(pin,r)}catch(e){toast(e.message);b.disabled=false}});
   app.querySelectorAll("[data-b]").forEach(x=>x.onclick=()=>boyView(pin,d,x.dataset.b));
   if($("#va"))$("#va").onclick=async ev=>{if(!confirm(`Verify all ${pend.length} entries with the mistakes as entered?`))return;ev.target.disabled=true;try{teacherView(pin,await rpc("teacher_verify_many",{p_pin:pin,p_ids:pend.map(e=>e.id)}))}catch(e){toast(e.message);ev.target.disabled=false}};
-  if($("#ab"))$("#ab").onclick=async()=>{try{const r=await rpc("teacher_add_boy",{p_pin:pin,p_name:$("#nb").value});const nm=$("#nb").value;const d2=await rpc("teacher_get",{p_pin:pin});teacherView(pin,d2);
-    $("#newcode").innerHTML=`<p>Give these to ${esc(nm)}'s parent (shown once):</p><div class="row"><div><label>Code</label><div class="code">${r.code}</div></div><div><label>PIN</label><div class="code">${r.pin}</div></div></div>`}catch(e){toast(e.message)}};
+  if($("#ab"))$("#ab").onclick=async()=>{const nm=$("#nb").value;try{const r=await rpc("teacher_add_boy",{p_pin:pin,p_name:nm});const d2=await rpc("teacher_get",{p_pin:pin});const nb=d2.boys.find(x=>x.code===r.code);boyView(pin,d2,nb.id,r)}catch(e){toast(e.message)}};
   if($("#cp"))$("#cp").onclick=async()=>{const n=$("#np").value.trim();try{await rpc("teacher_change_pin",{p_pin:pin,p_new:n});S.set("tch",n);toast("PIN changed");teacherView(n)}catch(e){toast(e.message)}};
 }
-function boyView(pin,d,id){
+function boyView(pin,d,id,fresh){
   const b=d.boys.find(x=>x.id===id);if(!b)return teacherView(pin);
   let so="";for(let s=1;s<=114;s++)so+=`<option value="${s}">${sname(s)}</option>`;
   const hist=[...b.entries].reverse().slice(0,25);
+  const pri=b.entries.filter(e=>e.kind==="prior"),pm=model(pri.map(e=>({...e,status:"verified"})));
   app.innerHTML=head(esc(b.name),1)+`<p><a href="#" id="bk">← All boys</a></p>
-  <div class="card" id="ge"><details ${b.goal?"":"open"}><summary style="cursor:pointer;font-weight:700;font-size:17px">${b.goal?`Goal: ${esc(b.goal.label)} <span class="mute" style="font-weight:500">(tap to change)</span>`:`Set ${esc(b.name)}'s goal`}</summary><p class="mute" style="margin:8px 0 4px">Pick the portion and tap "Add to goal". Add as many portions as you need, then save.</p>
+  ${fresh?`<div class="card"><h2>${esc(b.name)} added</h2><p class="mute" style="margin:0 0 6px">Give these to the parent now. The PIN is shown only once.</p><div class="row"><div><label>Code</label><div class="code">${fresh.code}</div></div><div><label>PIN</label><div class="code">${fresh.pin}</div></div></div></div>`:""}
+  <div class="card" id="bl"><details ${pri.length?"":"open"}><summary style="cursor:pointer;font-weight:700;font-size:17px">Step 1 · Already memorised ${pri.length?`<span class="mute" style="font-weight:500">(${pm.juzDone.length} juz · ${pm.surahsDone.length} surahs recorded, tap to add more)</span>`:""}</summary>
+    <p class="mute" style="margin:8px 0 4px">Record what ${esc(b.name)} knew when he joined, by juz, whole surah or part of a surah. Add each portion, one at a time.</p>
+    ${selectors()}<button type="button" id="blsave" style="width:100%;margin-top:10px">Save as already memorised</button><div class="err" id="blerr"></div></details></div>
+  <div class="card" id="ge"><details ${b.goal?"":"open"}><summary style="cursor:pointer;font-weight:700;font-size:17px">${b.goal?`Step 2 · Goal: ${esc(b.goal.label)} <span class="mute" style="font-weight:500">(tap to change)</span>`:`Step 2 · Set ${esc(b.name)}'s goal (new memorisation)`}</summary><p class="mute" style="margin:8px 0 4px">Pick the portion and tap "Add to goal". Add as many portions as you need, then save.</p>
     ${selectors()}<button type="button" class="ghost" id="gadd" style="width:100%;margin-top:10px">+ Add to goal</button>
     <div id="glist" class="list" style="margin-top:8px;max-height:260px;overflow:auto"></div>
     <label>Goal name</label><input id="gname" placeholder="e.g. Juz 29 and 30">
     <div class="row" style="margin-top:10px"><button id="gsave">Save goal</button><button class="ghost" id="gclear">Remove goal</button></div><div class="err" id="gerr"></div></details></div>
-  <div class="card"><h2>Add an entry</h2><p class="mute" style="margin:-4px 0 4px">Entries you add are verified straight away. Use "Already memorised" for what the boy knew before the tracker.</p>${entryForm("tf",[["new","New lesson"],["revision","Revision"],["prior","Already memorised (before tracker)"]])}</div>
-  ${dashboard(b.name,b.entries,b.goal)}
-  <div class="card"><h2>Weekly report for parent</h2><textarea id="wr" style="width:100%;height:170px;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px">${esc(weeklyText(b.name,b.entries))}</textarea>
-    <div class="row"><button id="cpy">Copy</button><a class="btn" style="text-align:center;text-decoration:none" target="_blank" href="https://wa.me/?text=${encodeURIComponent(weeklyText(b.name,b.entries))}">WhatsApp</a></div></div>
+  <div class="card" id="rv"><h2>Step 3 · Revision needed</h2><p class="mute" style="margin:-4px 0 4px">Mark a portion when he makes mistakes or you want it revised. It shows in amber on his chart and on the parent's screen until you tap "Completed".</p>
+    ${selectors()}<label>Note (optional)</label><input id="rvnote" placeholder="e.g. weak on ayat 10-15">
+    <button type="button" id="rvsave" style="width:100%;margin-top:10px">Mark revision needed</button><div class="err" id="rverr"></div>
+    ${b.flags&&b.flags.length?`<div style="margin-top:14px">${flagsCard(b.flags,true).replace('<div class="card flagcard">','<div>')}</div>`:""}</div>
+  <div class="card"><h2>Daily lesson or revision</h2><p class="mute" style="margin:-4px 0 4px">Entries you add are verified straight away.</p>${entryForm("tf",[["new","New lesson"],["revision","Revision"]])}</div>
+  ${dashboard(b.name,b.entries,b.goal,b.flags,true)}
+  <div class="card"><h2>Weekly report for parent</h2><textarea id="wr" style="width:100%;height:170px;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px">${esc(weeklyText(b.name,b.entries,b.flags))}</textarea>
+    <div class="row"><button id="cpy">Copy</button><a class="btn" style="text-align:center;text-decoration:none" target="_blank" href="https://wa.me/?text=${encodeURIComponent(weeklyText(b.name,b.entries,b.flags))}">WhatsApp</a></div></div>
   <div class="card"><h2>History</h2><div class="list">${hist.map(e=>`<div class="it"><div>${e.kind==="new"?"New":e.kind==="revision"?"Revision":"Already memorised"}: ${esc(EN[e.surah-1])} ${e.from}–${e.to}<br><span class="mute">${e.date} · ${e.mistakes} mistakes · by ${e.source}</span></div><div class="row" style="flex:0 0 auto;align-items:center"><span class="pill ${e.status==="verified"?"v":""}">${e.status}</span><button class="small ghost" data-del="${e.id}">Delete</button></div></div>`).join("")||"<p class='mute'>No entries yet.</p>"}</div></div>
   <div class="card"><h2>Parent access</h2><div class="row"><button class="ghost" id="rp">Reset parent PIN</button><button class="ghost" id="ia">${b.active?"Mark inactive":"Mark active"}</button></div><div id="rpo"></div><p class="mute">Code: <b>${b.code}</b></p></div>`;
-  $("#bk").onclick=e=>{e.preventDefault();TAB="boys";teacherView(pin,d)};$("#out").onclick=()=>{S.del("tch");home()};bindMap(b.entries);
+  $("#bk").onclick=e=>{e.preventDefault();TAB="boys";teacherView(pin,d)};$("#out").onclick=()=>{S.del("tch");home()};bindRosette(model(b.entries),b.flags,b.goal);
   const reload=r=>boyView(pin,r,id);
+  const blread=bindSelectors($("#bl"));
+  $("#blsave").onclick=async ev=>{const r=blread("prior");if(r.err){$("#blerr").textContent=r.err;return}ev.target.disabled=true;
+    try{reload(await rpc("teacher_add_many",{p_pin:pin,p_boy:id,p_items:r.items,p_mistakes:0,p_date:null}));toast(`Saved: ${r.label}`)}catch(e){$("#blerr").textContent=e.message;ev.target.disabled=false}};
+  const rvread=bindSelectors($("#rv"));
+  $("#rvsave").onclick=async ev=>{const r=rvread("revision");if(r.err){$("#rverr").textContent=r.err;return}ev.target.disabled=true;
+    try{reload(await rpc("teacher_flag_add",{p_pin:pin,p_boy:id,p_items:r.items.map(i=>({surah:i.surah,f:i.f,t:i.t})),p_note:$("#rvnote").value}));toast(`Marked: ${r.label}`)}catch(e){$("#rverr").textContent=e.message;ev.target.disabled=false}};
+  app.querySelectorAll("[data-fd]").forEach(x=>x.onclick=async()=>{const mk=prompt("Revision completed. Mistakes during this revision?","0");if(mk===null)return;
+    try{reload(await rpc("teacher_flag_done",{p_pin:pin,p_id:+x.dataset.fd,p_mistakes:+mk||0}));toast("Completed")}catch(e){toast(e.message)}});
   let gitems=(b.goal&&b.goal.items)?b.goal.items.map(x=>({...x})):[],glabels=[];
   const gread=bindSelectors($("#ge"));$("#gname").value=b.goal?b.goal.label:"";
   const gdraw=()=>{const bys={};for(const it of gitems)(bys[it.surah]=bys[it.surah]||[]).push(it);

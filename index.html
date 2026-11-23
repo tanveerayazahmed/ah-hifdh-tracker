@@ -192,7 +192,7 @@ function selectors(){
   let jo="";for(let j=1;j<=30;j++)jo+=`<option value="${j}">Juz ${j}</option>`;
   return `<div class="tabs" style="margin:0" data-modes><button type="button" data-mode="part" class="on">Part of a surah</button><button type="button" data-mode="surah">Whole surah</button><button type="button" data-mode="juz">Whole juz</button></div>
   <div data-p="part"><label>Surah</label><select name="surah">${o}</select>
-    <div class="row"><div><label>From ayah</label><input type="number" name="from" min="1" value="1" inputmode="numeric"></div><div><label>To ayah</label><input type="number" name="to" min="1" value="1" inputmode="numeric"></div></div>
+    <div class="row"><div><label>From ayah</label><select name="from"></select></div><div><label>To ayah</label><select name="to"></select></div></div>
     <p class="mute" data-info style="margin:6px 0 0"></p></div>
   <div data-p="surah" style="display:none"><div class="row"><div><label>From surah</label><select name="s1">${o}</select></div><div><label>To surah</label><select name="s2">${o}</select></div></div>
     <p class="mute" style="margin:6px 0 0">For one surah, choose the same surah in both.</p></div>
@@ -202,7 +202,9 @@ function selectors(){
 function bindSelectors(f){
   const g=n=>f.querySelector(`[name=${n}]`);let mode="part";
   const info=()=>{const s=+g("surah").value;f.querySelector("[data-info]").textContent=`${EN[s-1]} has ${Q.sc[s-1]} ayat`};
-  g("surah").onchange=()=>{info();g("from").value=1;g("to").value=1};info();
+  const fill=()=>{const n=Q.sc[+g("surah").value-1];let o="";for(let a=1;a<=n;a++)o+=`<option value="${a}">${a}</option>`;g("from").innerHTML=o;g("to").innerHTML=o;g("to").value=n};
+  g("surah").onchange=()=>{info();fill()};info();fill();
+  g("from").onchange=()=>{if(+g("to").value<+g("from").value)g("to").value=g("from").value};
   g("s1").onchange=()=>{if(+g("s2").value<+g("s1").value)g("s2").value=g("s1").value};
   g("j1").onchange=()=>{if(+g("j2").value<+g("j1").value)g("j2").value=g("j1").value};
   f.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;f.querySelectorAll("[data-mode]").forEach(x=>x.classList.toggle("on",x===b));f.querySelectorAll("[data-p]").forEach(p=>p.style.display=p.dataset.p===mode?"":"none")});
@@ -338,6 +340,7 @@ function boyView(pin,d,id){
   $("#rp").onclick=async()=>{if(!confirm("Create a new PIN? The old one will stop working."))return;try{const r=await rpc("teacher_reset_pin",{p_pin:pin,p_boy:id});$("#rpo").innerHTML=`<p>New PIN (shown once):</p><div class="code">${r.pin}</div>`}catch(e){toast(e.message)}};
   $("#ia").onclick=async()=>{try{reload(await rpc("teacher_update_boy",{p_pin:pin,p_boy:id,p_name:null,p_active:!b.active}))}catch(e){toast(e.message)}};
 }
+document.addEventListener("wheel",()=>{const a=document.activeElement;if(a&&a.type==="number")a.blur()},{passive:true});
 home();
 </script>
 </body>

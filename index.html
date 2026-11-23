@@ -371,9 +371,11 @@ function goalCard(goal,mem,name){
 
 const MODE={online:"Online",inperson:"In person",both:"Online & in person"};
 const modePill=m=>`<span class="pill ${m==="online"?"":"v"}" style="margin-left:6px">${MODE[m]||"In person"}</span>`;
+function credLink(code,pin,kind){return `${location.origin}/#${kind==="teacher"?"t":"p"}=${encodeURIComponent(code)}.${encodeURIComponent(pin)}`}
+function credText(name,code,pin,kind){return `Assalamu alaikum. AH Hifdh Tracker ${kind==="teacher"?"teacher":"parent"} login for ${name}:\n\nCode: ${code}\nPIN: ${pin}\n\nTap to sign in: ${credLink(code,pin,kind)}`}
 function credBox(name,code,pin,kind,note){
   const enc=encodeURIComponent;return `<p class="mute" style="margin:0 0 6px">${note||"Shown only once."}</p><div class="row">${code?`<div><label>Code</label><div class="code">${code}</div></div>`:""}<div><label>PIN</label><div class="code">${pin}</div></div></div>
-  <div class="row" style="margin-top:10px"><button class="small" data-cimg data-n="${esc(name)}" data-c="${code||""}" data-p="${pin}" data-k="${kind}">Copy picture</button>${navigator.canShare?`<button class="small ghost" data-cshare data-n="${esc(name)}" data-c="${code||""}" data-p="${pin}" data-k="${kind}">Share</button>`:""}</div>`;
+  <div class="row" style="margin-top:10px"><button class="small" data-ctxt data-n="${esc(name)}" data-c="${code||""}" data-p="${pin}" data-k="${kind}">Copy message with link</button><button class="small ghost" data-cimg data-n="${esc(name)}" data-c="${code||""}" data-p="${pin}" data-k="${kind}">Copy picture</button>${navigator.canShare?`<button class="small ghost" data-cshare data-n="${esc(name)}" data-c="${code||""}" data-p="${pin}" data-k="${kind}">Share</button>`:""}</div>`;
 }
 async function credImage(name,code,pin,kind){
   await document.fonts.ready;const W=720,H=420,c=document.createElement("canvas");c.width=W*2;c.height=H*2;const x=c.getContext("2d");x.scale(2,2);
@@ -390,10 +392,12 @@ async function credImage(name,code,pin,kind){
   x.fillStyle="#9aa89f";x.font="14px Inter,sans-serif";x.fillText(kind==="teacher"?'Open the link, tap "I\'m a teacher" and enter the code and PIN.':'Open the link, tap "I\'m a parent" and enter the code and PIN.',W/2,352);
   return new Promise(r=>c.toBlob(r,"image/png"));
 }
-document.addEventListener("click",async ev=>{const b=ev.target.closest("[data-cimg],[data-cshare]");if(!b)return;
+document.addEventListener("click",async ev=>{const b=ev.target.closest("[data-cimg],[data-cshare],[data-ctxt]");if(!b)return;
+  const txt=credText(b.dataset.n,b.dataset.c,b.dataset.p,b.dataset.k);
+  if(b.hasAttribute("data-ctxt")){try{await navigator.clipboard.writeText(txt);toast("Message copied. Paste it into WhatsApp.")}catch(e){prompt("Copy this message:",txt)}return}
   const blob=await credImage(b.dataset.n,b.dataset.c,b.dataset.p,b.dataset.k);
   if(b.hasAttribute("data-cshare")){const f=new File([blob],`${b.dataset.n} login.png`,{type:"image/png"});
-    if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:"AH Hifdh Tracker login"})}catch(e){}return}}
+    if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],text:txt,title:"AH Hifdh Tracker login"})}catch(e){}return}}
   try{await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);toast("Picture copied. Paste it into WhatsApp.")}
   catch(e){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${b.dataset.n} login.png`;a.click();toast("Picture downloaded")}});
 /* ---------- views ---------- */
@@ -527,8 +531,11 @@ function boyView(pin,d,id,fresh){
   $("#rp").onclick=async()=>{if(!confirm("Create a new PIN? The old one will stop working."))return;try{const r=await rpc("teacher_reset_pin",{p_pin:pin,p_boy:id});$("#rpo").innerHTML=credBox(b.name,r.code,r.pin,"parent","New PIN. Shown only once.")}catch(e){toast(e.message)}};
   $("#ia").onclick=async()=>{try{reload(await rpc("teacher_update_boy",{p_pin:pin,p_boy:id,p_name:null,p_active:!b.active}))}catch(e){toast(e.message)}};
 }
+(function(){const m=location.hash.match(/^#([pt])=([^.]+)\.(.+)$/);if(!m)return;const code=decodeURIComponent(m[2]).toUpperCase(),pin=decodeURIComponent(m[3]);
+  history.replaceState(null,"",location.pathname);
+  if(m[1]==="p")S.set("par",{code,pin});else S.set("tch",code+":"+pin);window.__auto=m[1]})();
 document.addEventListener("wheel",()=>{const a=document.activeElement;if(a&&a.type==="number")a.blur()},{passive:true});
-home();
+if(window.__auto==="p")parentLogin();else if(window.__auto==="t")teacherLogin();else home();
 </script>
 </body>
 </html>

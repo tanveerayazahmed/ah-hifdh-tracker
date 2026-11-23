@@ -312,6 +312,7 @@ function selectors(){
   let o="";for(let s=1;s<=114;s++)o+=`<option value="${s}">${sname(s)}</option>`;
   let jo="";for(let j=1;j<=30;j++)jo+=`<option value="${j}">Juz ${j}</option>`;
   return `<div class="tabs" style="margin:0" data-modes><button type="button" data-mode="part" class="on">Part of a surah</button><button type="button" data-mode="surah">Whole surah</button><button type="button" data-mode="juz">Whole juz</button></div>
+  <div data-sq><label>Search surah</label><input name="sq" placeholder="Type a name or number, e.g. mulk, yasin, 67" autocomplete="off"><div class="mute" data-sqi style="margin-top:4px;min-height:16px"></div></div>
   <div data-p="part"><label>Surah</label><select name="surah">${o}</select>
     <div class="row"><div><label>From ayah</label><select name="from"></select></div><div><label>To ayah</label><select name="to"></select></div></div>
     <p class="mute" data-info style="margin:6px 0 0"></p></div>
@@ -328,7 +329,16 @@ function bindSelectors(f){
   g("from").onchange=()=>{if(+g("to").value<+g("from").value)g("to").value=g("from").value};
   g("s1").onchange=()=>{if(+g("s2").value<+g("s1").value)g("s2").value=g("s1").value};
   g("j1").onchange=()=>{if(+g("j2").value<+g("j1").value)g("j2").value=g("j1").value};
-  f.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;f.querySelectorAll("[data-mode]").forEach(x=>x.classList.toggle("on",x===b));f.querySelectorAll("[data-p]").forEach(p=>p.style.display=p.dataset.p===mode?"":"none")});
+  const norm=t=>t.toLowerCase().replace(/^(al|an|ar|as|at|ash|adh|az|ad)[- ]/,"").replace(/[^a-z0-9\u0600-\u06ff]/g,"");
+  const sq=g("sq"),sqi=f.querySelector("[data-sqi]");
+  sq.oninput=()=>{const q=sq.value.trim();if(!q){sqi.textContent="";return}const nq=norm(q);const qa=q.replace(/[\u064B-\u065F\u0670]/g,"");
+    const hits=[];for(let s=1;s<=114;s++){const n=norm(EN[s-1]);if(String(s)===q||n.startsWith(nq)||(nq.length>2&&n.includes(nq))||(Q.sa&&Q.sa[s-1].includes(qa)))hits.push(s)}
+    if(!hits.length){sqi.textContent="No surah found";return}
+    const s0=hits[0];sqi.innerHTML=hits.slice(0,6).map(h=>`<a href="#" data-pick="${h}" style="margin-right:10px">${esc(sname(h))}</a>`).join("");
+    pick(s0)};
+  const pick=sn=>{if(mode==="surah"){g("s1").value=sn;if(+g("s2").value<sn)g("s2").value=sn}else{g("surah").value=sn;info();fill()}};
+  sqi.onclick=e=>{const a=e.target.closest("[data-pick]");if(!a)return;e.preventDefault();pick(+a.dataset.pick);sqi.textContent=`Selected: ${sname(+a.dataset.pick)}`;sq.value=""};
+  f.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;f.querySelector("[data-sq]").style.display=mode==="juz"?"none":"";f.querySelectorAll("[data-mode]").forEach(x=>x.classList.toggle("on",x===b));f.querySelectorAll("[data-p]").forEach(p=>p.style.display=p.dataset.p===mode?"":"none")});
   return kind=>{let items=[];
     if(mode==="part"){const s=+g("surah").value,a=+g("from").value,b=+g("to").value;
       if(!(a>=1&&b>=a&&b<=Q.sc[s-1]))return {err:`Check the ayah numbers (1–${Q.sc[s-1]}, "to" not less than "from").`};items=[{kind,surah:s,f:a,t:b}]}

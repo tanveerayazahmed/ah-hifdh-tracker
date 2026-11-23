@@ -487,7 +487,8 @@ async function teacherView(pin,d){
       <p class="mute" style="margin:10px 0 4px">Students assigned to ${esc(t.name)}:</p>
       <div class="list">${d.boys.map(b=>`<label class="it" style="margin:0;cursor:pointer;color:var(--ink);font-size:14px"><span>${esc(b.name)}</span><input type="checkbox" style="width:20px;height:20px;accent-color:#c9a96e" data-as="${b.id}" data-tid="${t.id}" ${t.boys.includes(b.id)?"checked":""}></label>`).join("")||"<p class='mute'>Add students first.</p>"}</div>
       <div class="row" style="margin-top:12px"><button class="ghost small" data-trp="${t.id}">Reset PIN</button><button class="ghost small" data-tact="${t.id}" data-on="${t.active?0:1}">${t.active?"Deactivate":"Activate"}</button><button class="small red" data-tdel="${t.id}" data-n="${esc(t.name)}">Delete</button></div><div data-tpo="${t.id}"></div></details></div>`).join("")}`;
-  if(TAB==="class")body=`<div class="card"><h2>Change teacher PIN</h2><div class="row"><input id="np" type="password" inputmode="numeric" placeholder="New PIN"><button id="cp" style="flex:0 0 auto">Change</button></div></div>`;
+  if(TAB==="class")body=`${d.role==="admin"?`<div class="card"><h2>Backup</h2><p class="mute" style="margin:-4px 0 10px">Downloads all students, teachers, entries, goals and revision items. Do this weekly and before holidays, and keep the files somewhere safe (e.g. Google Drive). PINs are not included.</p>
+    <div class="row"><button id="bk1">Download full backup</button><button class="ghost" id="bk2">Entries as Excel (CSV)</button></div></div>`:""}<div class="card"><h2>Change teacher PIN</h2><div class="row"><input id="np" type="password" inputmode="numeric" placeholder="New PIN"><button id="cp" style="flex:0 0 auto">Change</button></div></div>`;
   app.innerHTML=head(d.role==="admin"?"Admin":esc(d.me),1)+tabs+body;
   if($("#at"))$("#at").onclick=async()=>{const nm=$("#nt").value;try{const r=await rpc("admin_add_teacher",{p_pin:pin,p_name:nm});await teacherView(pin);$("#tcode").innerHTML=credBox(nm,r.code,r.pin,"teacher",`Give these to ${esc(nm)}. Shown only once.`)}catch(e){toast(e.message)}};
   app.querySelectorAll("[data-as]").forEach(x=>x.onchange=async()=>{try{const r=await rpc("admin_assign",{p_pin:pin,p_boy:x.dataset.as,p_tid:x.dataset.tid,p_on:x.checked});d.teachers=r.teachers;d.boys=r.boys;toast(x.checked?"Assigned":"Removed")}catch(e){toast(e.message);x.checked=!x.checked}});
@@ -503,6 +504,12 @@ async function teacherView(pin,d){
   app.querySelectorAll("[data-b]").forEach(x=>x.onclick=()=>boyView(pin,d,x.dataset.b));
   if($("#va"))$("#va").onclick=async ev=>{if(!confirm(`Verify all ${pend.length} entries with the mistakes as entered?`))return;ev.target.disabled=true;try{teacherView(pin,await rpc("teacher_verify_many",{p_pin:pin,p_ids:pend.map(e=>e.id)}))}catch(e){toast(e.message);ev.target.disabled=false}};
   if($("#ab"))$("#ab").onclick=async()=>{const nm=$("#nb").value;try{const r=await rpc("teacher_add_boy",{p_pin:pin,p_name:nm});const d2=await rpc("teacher_get",{p_pin:pin});const nb=d2.boys.find(x=>x.code===r.code);boyView(pin,d2,nb.id,r)}catch(e){toast(e.message)}};
+  const dl=(name,text,type)=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()};
+  const stamp=()=>new Date().toISOString().slice(0,10);
+  if($("#bk1"))$("#bk1").onclick=async()=>{try{const r=await rpc("admin_export",{p_pin:pin});dl(`AH-Hifdh-backup-${stamp()}.json`,JSON.stringify(r,null,1),"application/json");toast("Backup downloaded")}catch(e){toast(e.message)}};
+  if($("#bk2"))$("#bk2").onclick=async()=>{try{const r=await rpc("admin_export",{p_pin:pin});const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+    const rows=[["Date","Student","Type","Surah no","Surah","From ayah","To ayah","Mistakes","Status","Entered by","Verified/added by"].map(q).join(",")].concat(r.entries.map(e=>[e.date,e.student,e.kind==="prior"?"Already memorised":e.kind==="new"?"New lesson":"Revision",e.surah,EN[e.surah-1],e.from,e.to,e.mistakes,e.status,e.source,e.by].map(q).join(",")));
+    dl(`AH-Hifdh-entries-${stamp()}.csv`,"\ufeff"+rows.join("\r\n"),"text/csv");toast("Excel file downloaded")}catch(e){toast(e.message)}};
   if($("#cp"))$("#cp").onclick=async()=>{const n=$("#np").value.trim();try{await rpc("teacher_change_pin",{p_pin:pin,p_new:n});S.set("tch",n);toast("PIN changed");teacherView(n)}catch(e){toast(e.message)}};
 }
 function boyView(pin,d,id,fresh){

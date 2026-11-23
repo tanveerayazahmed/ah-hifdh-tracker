@@ -251,7 +251,7 @@ function bindRosette(m,flags,goal){
 }
 function flagsCard(flags,teacher){
   if(!flags||!flags.length)return teacher?"":`<div class="card"><h3>Revision needed</h3><p class="mute" style="margin:0">Nothing marked by the Ustad. Keep up regular revision.</p></div>`;
-  return `<div class="card flagcard"><h3>Revision needed · marked by Ustad</h3><div class="list">${flags.map(x=>`<div class="it"><div><b>${esc(EN[x.surah-1])}</b> ${x.from===1&&x.to===Q.sc[x.surah-1]?"(whole surah)":`ayat ${x.from}–${x.to}`}<br><span class="mute">${x.date}${x.note?" · "+esc(x.note):""}</span></div>${teacher?`<button class="small" data-fd="${x.id}">Completed</button>`:`<span class="pill">to revise</span>`}</div>`).join("")}</div></div>`;
+  return `<div class="card flagcard"><h3>Revision needed · marked by Ustad</h3><div class="list">${flags.map(x=>`<div class="it"><div><b>${esc(EN[x.surah-1])}</b> ${x.from===1&&x.to===Q.sc[x.surah-1]?"(whole surah)":`ayat ${x.from}–${x.to}`}<br><span class="mute">${x.date}${x.by?" · "+esc(x.by):""}${x.note?" · "+esc(x.note):""}</span></div>${teacher?`<button class="small" data-fd="${x.id}">Completed</button>`:`<span class="pill">to revise</span>`}</div>`).join("")}</div></div>`;
 }
 const banner=()=>`<div class="card hadith"><svg class="cart" viewBox="0 0 360 200" role="img" aria-label="Iqra wa irtaqi"><defs>
 <linearGradient id="bgold" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#9a7c47"/><stop offset=".35" stop-color="#ead9b2"/><stop offset=".6" stop-color="#c9a96e"/><stop offset="1" stop-color="#e6d4ab"/></linearGradient>
@@ -373,8 +373,9 @@ function goalCard(goal,mem,name){
 const head=(sub,out)=>`<header><div class="brand">AH Hifdh Tracker<small>${sub}</small></div>${out?`<button class="ghost small" id="out">Log out</button>`:""}</header>`;
 function home(){
   app.innerHTML=head("Al Hikmah Students")+`${banner()}
-  <div class="choose"><button id="gp">I'm a parent</button><button class="ghost" id="gt">I'm the teacher</button></div>`;
-  $("#gp").onclick=()=>parentLogin();$("#gt").onclick=()=>teacherLogin();
+  <div class="choose"><button id="gp">I'm a parent</button><button class="ghost" id="gt">I'm a teacher</button></div>
+  <p style="text-align:center;margin-top:18px"><a href="#" id="ga" class="mute">Admin login</a></p>`;
+  $("#gp").onclick=()=>parentLogin();$("#gt").onclick=()=>staffLogin();$("#ga").onclick=e=>{e.preventDefault();teacherLogin()};
 }
 function parentLogin(){
   const s=S.get("par");if(s)return parentView(s);
@@ -390,11 +391,19 @@ async function parentView(c,d){
   $("#out").onclick=()=>{S.del("par");home()};bindRosette(model(d.entries),d.flags,d.boy.goal);$("#lg").onclick=()=>{$("#lgc").style.display="block";$("#lg").style.display="none"};
   bindForm("pf",async v=>{const r=await rpc("parent_add_many",{p_code:c.code,p_pin:c.pin,p_items:v.items,p_mistakes:v.mistakes,p_date:v.date});toast("Saved. Waiting for teacher to verify.");parentView(c,r)});
 }
+function staffLogin(){
+  const s=S.get("tch");if(s)return teacherView(s);
+  app.innerHTML=head("Teacher login")+`<div class="card"><h2>Teacher login</h2><p class="mute">Use the code and PIN the admin gave you.</p>
+  <label>Teacher code</label><input id="tc" placeholder="AHT123" autocapitalize="characters"><label>PIN</label><input id="tp" type="password" inputmode="numeric">
+  <button id="tl" style="width:100%;margin-top:12px">Open</button><div class="err" id="te"></div><p><a href="#" id="back">← Back</a></p></div>`;
+  $("#back").onclick=e=>{e.preventDefault();home()};
+  $("#tl").onclick=async()=>{const k=$("#tc").value.trim().toUpperCase()+":"+$("#tp").value.trim();try{const d=await rpc("teacher_get",{p_pin:k});S.set("tch",k);teacherView(k,d)}catch(e){$("#te").textContent=e.message}};
+}
 async function teacherLogin(){
   const s=S.get("tch");if(s)return teacherView(s);
   let st;try{st=await rpc("teacher_status")}catch(e){app.innerHTML=head("")+`<div class="card err">${esc(e.message)}</div>`;return}
-  app.innerHTML=head("Teacher")+`<div class="card"><h2>${st.setup?"Teacher login":"First-time setup"}</h2>${st.setup?"":"<p class='mute'>Choose a teacher PIN (at least 6 digits). Keep it private.</p>"}
-  <label>Teacher PIN</label><input id="tp" type="password" inputmode="numeric">${st.setup?"":`<label>Repeat PIN</label><input id="tp2" type="password" inputmode="numeric">`}
+  app.innerHTML=head("Admin")+`<div class="card"><h2>${st.setup?"Admin login":"First-time setup"}</h2>${st.setup?"":"<p class='mute'>Choose an admin PIN (at least 6 digits). Keep it private.</p>"}
+  <label>Admin PIN</label><input id="tp" type="password" inputmode="numeric">${st.setup?"":`<label>Repeat PIN</label><input id="tp2" type="password" inputmode="numeric">`}
   <button id="tl" style="width:100%;margin-top:12px">${st.setup?"Open":"Set PIN"}</button><div class="err" id="te"></div><p><a href="#" id="back">← Back</a></p></div>`;
   $("#back").onclick=e=>{e.preventDefault();home()};
   $("#tl").onclick=async()=>{const pin=$("#tp").value.trim();try{if(!st.setup){if(pin!==$("#tp2").value.trim())throw new Error("PINs don't match");await rpc("teacher_setup",{p_pin:pin})}
@@ -405,7 +414,8 @@ async function teacherView(pin,d){
   try{d=d||await rpc("teacher_get",{p_pin:pin})}catch(e){S.del("tch");return teacherLogin()}
   const pend=[];for(const b of d.boys)for(const e of b.entries)if(e.status==="pending")pend.push({...e,boy:b});
   pend.sort((a,b)=>a.date<b.date?-1:1);
-  const tabs=`<div class="tabs"><button data-t="verify" class="${TAB==="verify"?"on":""}">To verify (${pend.length})</button><button data-t="boys" class="${TAB==="boys"?"on":""}">Students (${d.boys.filter(b=>b.active).length})</button><button data-t="class" class="${TAB==="class"?"on":""}">Settings</button></div>`;
+  const tabs=`<div class="tabs"><button data-t="verify" class="${TAB==="verify"?"on":""}">To verify (${pend.length})</button><button data-t="boys" class="${TAB==="boys"?"on":""}">Students (${d.boys.filter(b=>b.active).length})</button>${d.role==="admin"?`<button data-t="teachers" class="${TAB==="teachers"?"on":""}">Teachers (${(d.teachers||[]).filter(t=>t.active).length})</button>`:""}<button data-t="class" class="${TAB==="class"?"on":""}">Settings</button></div>`;
+  if(TAB==="teachers"&&d.role!=="admin")TAB="verify";
   let body="";
   if(TAB==="verify")body=pend.length?`${pend.length>1?`<button id="va" style="width:100%;margin-bottom:12px">Verify all ${pend.length} as entered</button>`:""}<div class="card list">${pend.map(e=>`<div class="it" style="flex-wrap:wrap"><div style="flex:1 1 200px"><b>${esc(e.boy.name)}</b> · ${e.kind==="new"?"New":"Revision"}<br>${esc(sname(e.surah))} ${e.from}–${e.to} <span class="mute">· ${e.date}</span></div>
     <div class="row" style="flex:0 0 auto;align-items:center"><input type="number" min="0" value="${e.mistakes}" data-mk="${e.id}" style="width:64px" title="Mistakes"><button class="small" data-v="${e.id}">Verify</button><button class="small ghost" data-r="${e.id}">Reject</button></div></div>`).join("")}</div>`
@@ -413,10 +423,19 @@ async function teacherView(pin,d){
   if(TAB==="boys"){
     body=`<div class="card"><h2>Add a student</h2><div class="row"><input id="nb" placeholder="Full name"><button id="ab" style="flex:0 0 auto">Add</button></div><div id="newcode"></div></div><div class="card list">`+
     d.boys.map(b=>{const m=model(b.entries);const lastD=b.entries.filter(e=>e.status==="verified"&&e.kind!=="prior").map(e=>dnum(e.date)).sort().pop();
-      return `<div class="it" style="cursor:pointer" data-b="${b.id}"><div><b>${esc(b.name)}</b>${b.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">${(()=>{const g=goalProgress(b.goal,m.mem);return g?`Goal ${esc(b.goal.label)}: ${g.pct}% · `:"No goal · "})()}${fmt(m.full/20)} juz · this week ${fmt(m.cur.nw)} new pg · ${(b.flags||[]).length} revision needed · ${lastD?`last ${m.T-lastD}d ago`:"no sessions yet"}</span></div><span class="mute">›</span></div>`}).join("")+`</div>`;
+      return `<div class="it" style="cursor:pointer" data-b="${b.id}"><div><b>${esc(b.name)}</b>${b.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">${d.role==="admin"?`${b.teachers.length?b.teachers.map(t=>esc(t.name)).join(", "):"No teacher"} · `:""}${(()=>{const g=goalProgress(b.goal,m.mem);return g?`Goal ${esc(b.goal.label)}: ${g.pct}% · `:"No goal · "})()}${fmt(m.full/20)} juz · this week ${fmt(m.cur.nw)} new pg · ${(b.flags||[]).length} revision needed · ${lastD?`last ${m.T-lastD}d ago`:"no sessions yet"}</span></div><span class="mute">›</span></div>`}).join("")+`</div>`;
   }
-  if(TAB==="class")body=`<div class="card"><h2>Change teacher PIN</h2><div class="row"><input id="np" type="password" inputmode="numeric" placeholder="New PIN (6+ digits)"><button id="cp" style="flex:0 0 auto">Change</button></div></div>`;
-  app.innerHTML=head("Teacher",1)+tabs+body;
+  if(TAB==="teachers")body=`<div class="card"><h2>Add a teacher</h2><div class="row"><input id="nt" placeholder="Teacher's name"><button id="at" style="flex:0 0 auto">Add</button></div><div id="tcode"></div></div>
+    ${(d.teachers||[]).map(t=>`<div class="card"><details><summary style="cursor:pointer"><b style="font-size:16px">${esc(t.name)}</b>${t.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">Code ${t.code} · ${t.boys.length} student${t.boys.length===1?"":"s"} (tap to assign)</span></summary>
+      <p class="mute" style="margin:10px 0 4px">Students assigned to ${esc(t.name)}:</p>
+      <div class="list">${d.boys.map(b=>`<label class="it" style="margin:0;cursor:pointer;color:var(--ink);font-size:14px"><span>${esc(b.name)}</span><input type="checkbox" style="width:20px;height:20px;accent-color:#c9a96e" data-as="${b.id}" data-tid="${t.id}" ${t.boys.includes(b.id)?"checked":""}></label>`).join("")||"<p class='mute'>Add students first.</p>"}</div>
+      <div class="row" style="margin-top:12px"><button class="ghost small" data-trp="${t.id}">Reset PIN</button><button class="ghost small" data-tact="${t.id}" data-on="${t.active?0:1}">${t.active?"Deactivate":"Activate"}</button></div><div data-tpo="${t.id}"></div></details></div>`).join("")}`;
+  if(TAB==="class")body=`<div class="card"><h2>Change teacher PIN</h2><div class="row"><input id="np" type="password" inputmode="numeric" placeholder="New PIN"><button id="cp" style="flex:0 0 auto">Change</button></div></div>`;
+  app.innerHTML=head(d.role==="admin"?"Admin":esc(d.me),1)+tabs+body;
+  if($("#at"))$("#at").onclick=async()=>{const nm=$("#nt").value;try{const r=await rpc("admin_add_teacher",{p_pin:pin,p_name:nm});await teacherView(pin);$("#tcode").innerHTML=`<p>Give these to ${esc(nm)} (shown once):</p><div class="row"><div><label>Code</label><div class="code">${r.code}</div></div><div><label>PIN</label><div class="code">${r.pin}</div></div></div>`}catch(e){toast(e.message)}};
+  app.querySelectorAll("[data-as]").forEach(x=>x.onchange=async()=>{try{const r=await rpc("admin_assign",{p_pin:pin,p_boy:x.dataset.as,p_tid:x.dataset.tid,p_on:x.checked});d.teachers=r.teachers;d.boys=r.boys;toast(x.checked?"Assigned":"Removed")}catch(e){toast(e.message);x.checked=!x.checked}});
+  app.querySelectorAll("[data-trp]").forEach(x=>x.onclick=async()=>{if(!confirm("Create a new PIN for this teacher? The old one stops working."))return;try{const r=await rpc("admin_reset_teacher_pin",{p_pin:pin,p_tid:x.dataset.trp});app.querySelector(`[data-tpo="${x.dataset.trp}"]`).innerHTML=`<p>New PIN (shown once):</p><div class="code">${r.pin}</div>`}catch(e){toast(e.message)}});
+  app.querySelectorAll("[data-tact]").forEach(x=>x.onclick=async()=>{try{teacherView(pin,await rpc("admin_update_teacher",{p_pin:pin,p_tid:x.dataset.tact,p_name:null,p_active:x.dataset.on==="1"}))}catch(e){toast(e.message)}});
   $("#out").onclick=()=>{S.del("tch");home()};
   app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{TAB=b.dataset.t;teacherView(pin,d)});
   app.querySelectorAll("[data-v],[data-r]").forEach(b=>b.onclick=async()=>{b.disabled=true;const id=+(b.dataset.v||b.dataset.r);
@@ -433,6 +452,7 @@ function boyView(pin,d,id,fresh){
   const pri=b.entries.filter(e=>e.kind==="prior"),pm=model(pri.map(e=>({...e,status:"verified"})));
   app.innerHTML=head(esc(b.name),1)+`<p><a href="#" id="bk">← All students</a></p>
   ${fresh?`<div class="card"><h2>${esc(b.name)} added</h2><p class="mute" style="margin:0 0 6px">Give these to the parent now. The PIN is shown only once.</p><div class="row"><div><label>Code</label><div class="code">${fresh.code}</div></div><div><label>PIN</label><div class="code">${fresh.pin}</div></div></div></div>`:""}
+  <div class="card"><h3>Teachers</h3>${d.role==="admin"?`<div class="list">${(d.teachers||[]).filter(t=>t.active).map(t=>`<label class="it" style="margin:0;cursor:pointer;color:var(--ink);font-size:14px"><span>${esc(t.name)}</span><input type="checkbox" style="width:20px;height:20px;accent-color:#c9a96e" data-bas="${t.id}" ${b.teachers.some(x=>x.id===t.id)?"checked":""}></label>`).join("")||"<p class='mute' style='margin:0'>No teachers yet. Add them in the Teachers tab.</p>"}</div>`:`<p style="margin:0">${b.teachers.map(t=>esc(t.name)).join(", ")||"–"}</p>`}</div>
   <div class="card" id="bl"><details ${pri.length?"":"open"}><summary style="cursor:pointer;font-weight:700;font-size:17px">Step 1 · Already memorised ${pri.length?`<span class="mute" style="font-weight:500">(${pm.juzDone.length} juz · ${pm.surahsDone.length} surahs recorded, tap to add more)</span>`:""}</summary>
     <p class="mute" style="margin:8px 0 4px">Record what ${esc(b.name)} knew when he joined, by juz, whole surah or part of a surah. Add each portion, one at a time.</p>
     ${selectors()}<button type="button" id="blsave" style="width:100%;margin-top:10px">Save as already memorised</button><div class="err" id="blerr"></div></details></div>
@@ -449,10 +469,11 @@ function boyView(pin,d,id,fresh){
   ${dashboard(b.name,b.entries,b.goal,b.flags,true)}
   <div class="card"><h2>Weekly report for parent</h2><textarea id="wr" style="width:100%;height:170px;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px">${esc(weeklyText(b.name,b.entries,b.flags))}</textarea>
     <div class="row"><button id="cpy">Copy</button><a class="btn" style="text-align:center;text-decoration:none" target="_blank" href="https://wa.me/?text=${encodeURIComponent(weeklyText(b.name,b.entries,b.flags))}">WhatsApp</a></div></div>
-  <div class="card"><h2>History</h2><div class="list">${hist.map(e=>`<div class="it"><div>${e.kind==="new"?"New":e.kind==="revision"?"Revision":"Already memorised"}: ${esc(EN[e.surah-1])} ${e.from}–${e.to}<br><span class="mute">${e.date} · ${e.mistakes} mistakes · by ${e.source}</span></div><div class="row" style="flex:0 0 auto;align-items:center"><span class="pill ${e.status==="verified"?"v":""}">${e.status}</span><button class="small ghost" data-del="${e.id}">Delete</button></div></div>`).join("")||"<p class='mute'>No entries yet.</p>"}</div></div>
+  <div class="card"><h2>History</h2><div class="list">${hist.map(e=>`<div class="it"><div>${e.kind==="new"?"New":e.kind==="revision"?"Revision":"Already memorised"}: ${esc(EN[e.surah-1])} ${e.from}–${e.to}<br><span class="mute">${e.date} · ${e.mistakes} mistakes · ${e.status==="pending"?"by parent":e.source==="parent"?`by parent, verified by ${esc(e.by||"teacher")}`:`by ${esc(e.by||"teacher")}`}</span></div><div class="row" style="flex:0 0 auto;align-items:center"><span class="pill ${e.status==="verified"?"v":""}">${e.status}</span><button class="small ghost" data-del="${e.id}">Delete</button></div></div>`).join("")||"<p class='mute'>No entries yet.</p>"}</div></div>
   <div class="card"><h2>Parent access</h2><div class="row"><button class="ghost" id="rp">Reset parent PIN</button><button class="ghost" id="ia">${b.active?"Mark inactive":"Mark active"}</button></div><div id="rpo"></div><p class="mute">Code: <b>${b.code}</b></p></div>`;
   $("#bk").onclick=e=>{e.preventDefault();TAB="boys";teacherView(pin,d)};$("#out").onclick=()=>{S.del("tch");home()};bindRosette(model(b.entries),b.flags,b.goal);
   const reload=r=>boyView(pin,r,id);
+  app.querySelectorAll("[data-bas]").forEach(x=>x.onchange=async()=>{try{reload(await rpc("admin_assign",{p_pin:pin,p_boy:id,p_tid:x.dataset.bas,p_on:x.checked}));toast(x.checked?"Assigned":"Removed")}catch(e){toast(e.message);x.checked=!x.checked}});
   const blread=bindSelectors($("#bl"));
   $("#blsave").onclick=async ev=>{const r=blread("prior");if(r.err){$("#blerr").textContent=r.err;return}ev.target.disabled=true;
     try{reload(await rpc("teacher_add_many",{p_pin:pin,p_boy:id,p_items:r.items,p_mistakes:0,p_date:null}));toast(`Saved: ${r.label}`)}catch(e){$("#blerr").textContent=e.message;ev.target.disabled=false}};

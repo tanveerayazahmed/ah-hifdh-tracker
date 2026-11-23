@@ -204,8 +204,8 @@ function classCard(cls,detail){
   <p style="margin:8px 0 0"><b>${fmt(c.done)} of ${fmt(+cls.target)} ${c.unitLabel}</b> <span class="mute">since ${cls.start} (${c.pct}%)</span></p>
   <p class="mute" style="margin:4px 0 0">${c.surahs} surah${c.surahs===1?"":"s"} completed · ${fmt(c.juz)} juz of new memorisation</p>`;
   if(detail){const cs=Object.keys(c.comp).map(Number).sort((a,b)=>a-b);
-    if(cs.length)h+=`<p class="mute" style="margin:12px 0 4px">Completed</p><div class="list">${cs.map(s=>`<div class="it"><div>${esc(sname(s))}</div><span class="pill v">${c.comp[s]} boy${c.comp[s]>1?"s":""}</span></div>`).join("")}</div>`;
-    if(c.prog.length)h+=`<p class="mute" style="margin:12px 0 4px">In progress</p><div class="list">${c.prog.sort((a,b)=>a.s-b.s).map(p=>`<div class="it"><div>${esc(sname(p.s))}<br><span class="mute">${p.have} of ${Q.sc[p.s-1]*p.n} ayat${p.n>1?` (${p.n} boys)`:""}</span></div><span class="pill">${Math.round(p.have/(Q.sc[p.s-1]*p.n)*100)}%</span></div>`).join("")}</div>`;}
+    if(cs.length)h+=`<p class="mute" style="margin:12px 0 4px">Completed</p><div class="list">${cs.map(s=>`<div class="it"><div>${esc(sname(s))}</div><span class="pill v">${c.comp[s]} student${c.comp[s]>1?"s":""}</span></div>`).join("")}</div>`;
+    if(c.prog.length)h+=`<p class="mute" style="margin:12px 0 4px">In progress</p><div class="list">${c.prog.sort((a,b)=>a.s-b.s).map(p=>`<div class="it"><div>${esc(sname(p.s))}<br><span class="mute">${p.have} of ${Q.sc[p.s-1]*p.n} ayat${p.n>1?` (${p.n} students)`:""}</span></div><span class="pill">${Math.round(p.have/(Q.sc[p.s-1]*p.n)*100)}%</span></div>`).join("")}</div>`;}
   return h+`</div>`;
 }
 const posA=id=>{if(id>NA)return 1;const p=pageOf(id);return ((p-1)+(id-Q.pg[p-1])/pageAyat(p))/NP};
@@ -366,14 +366,14 @@ function goalCard(goal,mem,name){
 /* ---------- views ---------- */
 const head=(sub,out)=>`<header><div class="brand">AH Hifdh Tracker<small>${sub}</small></div>${out?`<button class="ghost small" id="out">Log out</button>`:""}</header>`;
 function home(){
-  app.innerHTML=head("Al Hikmah Boys")+`<div class="card hadith"><div class="ar" style="font-size:30px">اقْرَأْ وَارْتَقِ</div><p>Recite and rise</p></div>
+  app.innerHTML=head("Al Hikmah Students")+`<div class="card hadith"><div class="ar" style="font-size:30px">اقْرَأْ وَارْتَقِ</div><p>Recite and rise</p></div>
   <div class="choose"><button id="gp">I'm a parent</button><button class="ghost" id="gt">I'm the teacher</button></div>`;
   $("#gp").onclick=()=>parentLogin();$("#gt").onclick=()=>teacherLogin();
 }
 function parentLogin(){
   const s=S.get("par");if(s)return parentView(s);
   app.innerHTML=head("Parent login")+`<div class="card"><h2>Parent login</h2><p class="mute">Use the code and PIN the teacher gave you.</p>
-  <label>Son's code</label><input id="pc" placeholder="AHB123" autocapitalize="characters"><label>PIN</label><input id="pp" type="password" inputmode="numeric" maxlength="8">
+  <label>Student's code</label><input id="pc" placeholder="AHB123" autocapitalize="characters"><label>PIN</label><input id="pp" type="password" inputmode="numeric" maxlength="8">
   <button id="pl" style="width:100%;margin-top:12px">Open</button><div class="err" id="pe"></div><p><a href="#" id="back">← Back</a></p></div>`;
   $("#back").onclick=e=>{e.preventDefault();home()};
   $("#pl").onclick=async()=>{const c={code:$("#pc").value.trim().toUpperCase(),pin:$("#pp").value.trim()};try{const d=await rpc("parent_get",{p_code:c.code,p_pin:c.pin});S.set("par",c);parentView(c,d)}catch(e){$("#pe").textContent=e.message}};
@@ -399,13 +399,13 @@ async function teacherView(pin,d){
   try{d=d||await rpc("teacher_get",{p_pin:pin})}catch(e){S.del("tch");return teacherLogin()}
   const pend=[];for(const b of d.boys)for(const e of b.entries)if(e.status==="pending")pend.push({...e,boy:b});
   pend.sort((a,b)=>a.date<b.date?-1:1);
-  const tabs=`<div class="tabs"><button data-t="verify" class="${TAB==="verify"?"on":""}">To verify (${pend.length})</button><button data-t="boys" class="${TAB==="boys"?"on":""}">Boys (${d.boys.filter(b=>b.active).length})</button><button data-t="class" class="${TAB==="class"?"on":""}">Settings</button></div>`;
+  const tabs=`<div class="tabs"><button data-t="verify" class="${TAB==="verify"?"on":""}">To verify (${pend.length})</button><button data-t="boys" class="${TAB==="boys"?"on":""}">Students (${d.boys.filter(b=>b.active).length})</button><button data-t="class" class="${TAB==="class"?"on":""}">Settings</button></div>`;
   let body="";
   if(TAB==="verify")body=pend.length?`${pend.length>1?`<button id="va" style="width:100%;margin-bottom:12px">Verify all ${pend.length} as entered</button>`:""}<div class="card list">${pend.map(e=>`<div class="it" style="flex-wrap:wrap"><div style="flex:1 1 200px"><b>${esc(e.boy.name)}</b> · ${e.kind==="new"?"New":"Revision"}<br>${esc(sname(e.surah))} ${e.from}–${e.to} <span class="mute">· ${e.date}</span></div>
     <div class="row" style="flex:0 0 auto;align-items:center"><input type="number" min="0" value="${e.mistakes}" data-mk="${e.id}" style="width:64px" title="Mistakes"><button class="small" data-v="${e.id}">Verify</button><button class="small ghost" data-r="${e.id}">Reject</button></div></div>`).join("")}</div>`
     :`<div class="card mute">Nothing waiting. All entries are verified.</div>`;
   if(TAB==="boys"){
-    body=`<div class="card"><h2>Add a boy</h2><div class="row"><input id="nb" placeholder="Full name"><button id="ab" style="flex:0 0 auto">Add</button></div><div id="newcode"></div></div><div class="card list">`+
+    body=`<div class="card"><h2>Add a student</h2><div class="row"><input id="nb" placeholder="Full name"><button id="ab" style="flex:0 0 auto">Add</button></div><div id="newcode"></div></div><div class="card list">`+
     d.boys.map(b=>{const m=model(b.entries);const lastD=b.entries.filter(e=>e.status==="verified"&&e.kind!=="prior").map(e=>dnum(e.date)).sort().pop();
       return `<div class="it" style="cursor:pointer" data-b="${b.id}"><div><b>${esc(b.name)}</b>${b.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">${(()=>{const g=goalProgress(b.goal,m.mem);return g?`Goal ${esc(b.goal.label)}: ${g.pct}% · `:"No goal · "})()}${fmt(m.full/20)} juz · this week ${fmt(m.cur.nw)} new pg · ${(b.flags||[]).length} revision needed · ${lastD?`last ${m.T-lastD}d ago`:"no sessions yet"}</span></div><span class="mute">›</span></div>`}).join("")+`</div>`;
   }
@@ -425,7 +425,7 @@ function boyView(pin,d,id,fresh){
   let so="";for(let s=1;s<=114;s++)so+=`<option value="${s}">${sname(s)}</option>`;
   const hist=[...b.entries].reverse().slice(0,25);
   const pri=b.entries.filter(e=>e.kind==="prior"),pm=model(pri.map(e=>({...e,status:"verified"})));
-  app.innerHTML=head(esc(b.name),1)+`<p><a href="#" id="bk">← All boys</a></p>
+  app.innerHTML=head(esc(b.name),1)+`<p><a href="#" id="bk">← All students</a></p>
   ${fresh?`<div class="card"><h2>${esc(b.name)} added</h2><p class="mute" style="margin:0 0 6px">Give these to the parent now. The PIN is shown only once.</p><div class="row"><div><label>Code</label><div class="code">${fresh.code}</div></div><div><label>PIN</label><div class="code">${fresh.pin}</div></div></div></div>`:""}
   <div class="card" id="bl"><details ${pri.length?"":"open"}><summary style="cursor:pointer;font-weight:700;font-size:17px">Step 1 · Already memorised ${pri.length?`<span class="mute" style="font-weight:500">(${pm.juzDone.length} juz · ${pm.surahsDone.length} surahs recorded, tap to add more)</span>`:""}</summary>
     <p class="mute" style="margin:8px 0 4px">Record what ${esc(b.name)} knew when he joined, by juz, whole surah or part of a surah. Add each portion, one at a time.</p>
@@ -464,7 +464,7 @@ function boyView(pin,d,id,fresh){
     for(const it of r.items)gitems.push({surah:it.surah,f:it.f,t:it.t});glabels.push(r.label);if(!$("#gname").value||!b.goal)$("#gname").value=glabels.join(", ");gdraw()};
   $("#gsave").onclick=async()=>{if(!gitems.length){$("#gerr").textContent="Add at least one portion first.";return}
     try{reload(await rpc("teacher_set_boy_goal",{p_pin:pin,p_boy:id,p_label:$("#gname").value,p_items:gitems}));toast("Goal saved")}catch(e){$("#gerr").textContent=e.message}};
-  $("#gclear").onclick=async()=>{if(!confirm("Remove this boy's goal?"))return;try{reload(await rpc("teacher_set_boy_goal",{p_pin:pin,p_boy:id,p_label:"",p_items:[]}))}catch(e){toast(e.message)}};
+  $("#gclear").onclick=async()=>{if(!confirm("Remove this student's goal?"))return;try{reload(await rpc("teacher_set_boy_goal",{p_pin:pin,p_boy:id,p_label:"",p_items:[]}))}catch(e){toast(e.message)}};
   bindForm("tf",async v=>{const r=await rpc("teacher_add_many",{p_pin:pin,p_boy:id,p_items:v.items,p_mistakes:v.mistakes,p_date:v.date});toast("Saved");reload(r)});
   $("#cpy").onclick=()=>{navigator.clipboard.writeText($("#wr").value).then(()=>toast("Copied"),()=>{$("#wr").select();toast("Select and copy")})};
   app.querySelectorAll("[data-del]").forEach(x=>x.onclick=async()=>{if(!confirm("Delete this entry?"))return;try{reload(await rpc("teacher_delete",{p_pin:pin,p_id:+x.dataset.del}))}catch(e){toast(e.message)}});

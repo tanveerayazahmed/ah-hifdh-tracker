@@ -112,6 +112,28 @@ function model(entries){
 const surahsOnPage=p=>{const a=surahOf(Q.pg[p-1]),b=surahOf(Q.pg[p]-1);const r=[];for(let s=a;s<=b;s++)r.push(EN[s-1]);return r.join(", ")};
 const fmt=v=>v>=10?Math.round(v):Math.round(v*10)/10;
 
+function classProgress(cls){
+  const st=dnum(cls.start),items=cls.items||[],by={};
+  for(const e of items)(by[e.b]=by[e.b]||[]).push(e);
+  let pe=0;const comp={},prog={};
+  for(const b in by){const L=by[b],touched=new Set();
+    for(const e of L)if(e.k==="new"&&dnum(e.d)>=st){touched.add(e.s);for(let a=e.f;a<=e.t;a++)pe+=1/pageAyat(pageOf(gid(e.s,a)))}
+    for(const s of touched){const have=new Set();for(const e of L)if(e.s===s)for(let a=e.f;a<=e.t;a++)have.add(a);
+      if(have.size>=Q.sc[s-1])comp[s]=(comp[s]||0)+1;else{const p=prog[s]||(prog[s]={s,have:0,n:0});p.have+=have.size;p.n++}}}
+  const surahs=Object.values(comp).reduce((a,b)=>a+b,0),juz=pe/20;
+  const done=cls.unit==="surah"?surahs:juz;
+  return {done,juz,surahs,comp,prog:Object.values(prog),pct:Math.min(100,Math.round(done/Math.max(cls.target,0.5)*100)),unitLabel:cls.unit==="surah"?"surahs":"juz"};
+}
+function classCard(cls,detail){
+  const c=classProgress(cls);
+  let h=`<div class="card"><h3>${esc(cls.label)} · whole class</h3><div class="bar"><i style="width:${c.pct}%"></i></div>
+  <p style="margin:8px 0 0"><b>${fmt(c.done)} of ${fmt(+cls.target)} ${c.unitLabel}</b> <span class="mute">since ${cls.start} (${c.pct}%)</span></p>
+  <p class="mute" style="margin:4px 0 0">${c.surahs} surah${c.surahs===1?"":"s"} completed · ${fmt(c.juz)} juz of new memorisation</p>`;
+  if(detail){const cs=Object.keys(c.comp).map(Number).sort((a,b)=>a-b);
+    if(cs.length)h+=`<p class="mute" style="margin:12px 0 4px">Completed</p><div class="list">${cs.map(s=>`<div class="it"><div>${esc(sname(s))}</div><span class="pill v">${c.comp[s]} boy${c.comp[s]>1?"s":""}</span></div>`).join("")}</div>`;
+    if(c.prog.length)h+=`<p class="mute" style="margin:12px 0 4px">In progress</p><div class="list">${c.prog.sort((a,b)=>a.s-b.s).map(p=>`<div class="it"><div>${esc(sname(p.s))}<br><span class="mute">${p.have} of ${Q.sc[p.s-1]*p.n} ayat${p.n>1?` (${p.n} boys)`:""}</span></div><span class="pill">${Math.round(p.have/(Q.sc[p.s-1]*p.n)*100)}%</span></div>`).join("")}</div>`;}
+  return h+`</div>`;
+}
 function dashboard(name,entries,cls){
   const m=model(entries);
   const trend=(a,b)=>a>b?`<span class="up">▲ ${fmt(a-b)}</span>`:a<b?`<span class="down">▼ ${fmt(b-a)}</span>`:`<span class="mute">=</span>`;
@@ -123,13 +145,12 @@ function dashboard(name,entries,cls){
   let dots="";for(let i=0;i<7;i++){const d=m.wk+i;dots+=`<span><b class="${m.cur.days.has(d)||m.pendDays.has(d)?"on":""} ${d===m.T?"today":""}"></b>${days[i]}</span>`}
   const beat=m.prev.nw>0&&m.cur.nw<m.prev.nw?`Beat last week: ${fmt(m.prev.nw-m.cur.nw)} more page${m.prev.nw-m.cur.nw>1?"s":""} to go`:m.cur.nw>0&&m.cur.nw>=m.best?"This is your best week so far. Keep going!":"";
   const pend=entries.filter(e=>e.status==="pending");
-  const cg=cls?Math.min(100,Math.round(cls.done/Math.max(cls.target,1)*100)):0;
   return `
   <div class="card hadith"><div class="ar">اقْرَأْ وَارْتَقِ</div><p>"Recite and rise": your rank is at the last ayah you recite. (Abu Dawud, Tirmidhi)</p></div>
   <div class="card"><h3>${esc(name)}'s ascent</h3>
-    <div class="row" style="align-items:flex-end"><div><div class="big">${fmt(juzEq)} <span class="mute" style="font-size:15px">of 30 juz</span></div><div class="mute">${m.full} pages · ${m.total} ayat memorised</div></div></div>
+    <div class="row" style="align-items:flex-end"><div><div class="big">${fmt(juzEq)} <span class="mute" style="font-size:15px">of 30 juz</span></div><div class="mute">${m.juzDone.length} juz · ${m.surahsDone.length} surah${m.surahsDone.length===1?"":"s"} complete · ${m.full} pages</div></div></div>
     <div class="stairs">${stairs}</div>
-    ${m.juzDone.length||m.surahsDone.length?`<div class="ms">${m.juzDone.map(j=>`<span>Juz ${j} complete</span>`).join("")}${m.surahsDone.length?`<span>${m.surahsDone.length} surah${m.surahsDone.length>1?"s":""} complete</span>`:""}</div>`:""}
+    ${m.juzDone.length||m.surahsDone.length?`<div class="ms">${m.juzDone.map(j=>`<span>Juz ${j} complete</span>`).join("")}</div>`:""}
   </div>
   ${m.nudges.length?`<div class="card"><h3>So close</h3>${m.nudges.slice(0,3).map(n=>`<div class="nudge"><div class="n">${n.n}</div><div>${n.t}</div></div>`).join("")}</div>`:""}
   <div class="card"><h3>This week vs last week</h3>
@@ -148,7 +169,7 @@ function dashboard(name,entries,cls){
     <div class="legend"><span><i style="background:var(--g)"></i>Strong (≤7 days)</span><span><i style="background:var(--g2)"></i>Good (≤14)</span><span><i style="background:var(--g3)"></i>Weak (≤30)</span><span><i style="background:var(--fade);outline:1.5px solid var(--warn)"></i>Fading (30+)</span><span><i style="background:linear-gradient(0deg,var(--g3) 50%,#ebe5d6 50%)"></i>In progress</span></div>
     <p class="mute" style="margin:8px 0 0">Each square is one page. Pages fade if not revised. Tap a square for details.</p>
   </div>
-  ${cls?`<div class="card"><h3>${esc(cls.label)} · whole class</h3><div class="bar"><i style="width:${cg}%"></i></div><p class="mute" style="margin:6px 0 0">${cls.done} of ${cls.target} new ayat together since ${cls.start} (${cg}%)</p></div>`:""}
+  ${cls?classCard(cls,false):""}
   ${pend.length?`<div class="card"><h3>Waiting for teacher</h3><div class="list">${pend.map(e=>`<div class="it"><div>${e.kind==="new"?"New":"Revision"}: ${esc(EN[e.surah-1])} ${e.from}–${e.to} <span class="mute">· ${e.date}</span></div><span class="pill">pending</span></div>`).join("")}</div></div>`:""}`;
 }
 function bindMap(entries){
@@ -232,9 +253,12 @@ async function teacherView(pin,d){
     d.boys.map(b=>{const m=model(b.entries);const lastD=b.entries.filter(e=>e.status==="verified"&&e.kind!=="prior").map(e=>dnum(e.date)).sort().pop();
       return `<div class="it" style="cursor:pointer" data-b="${b.id}"><div><b>${esc(b.name)}</b>${b.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">${fmt(m.full/20)} juz · this week ${fmt(m.cur.nw)} new pg · ${m.fading.length} fading · ${lastD?`last ${m.T-lastD}d ago`:"no sessions yet"}</span></div><span class="mute">›</span></div>`}).join("")+`</div>`;
   }
-  if(TAB==="class")body=`<div class="card"><h2>Class goal</h2><p class="mute">The boys see one shared bar, not a ranking. Counts verified new ayat from all boys since the start date.</p>
-    <label>Goal name</label><input id="gl" value="${esc(d.class.label)}"><div class="row"><div><label>Target (ayat)</label><input id="gtg" type="number" value="${d.class.target}"></div><div><label>Start date</label><input id="gs" type="date" value="${d.class.start}"></div></div>
-    <div class="bar" style="margin-top:12px"><i style="width:${Math.min(100,d.class.done/d.class.target*100)}%"></i></div><p class="mute">${d.class.done} of ${d.class.target}</p><button id="sg">Save goal</button></div>
+  if(TAB==="class")body=`<div class="card"><h2>Class goal</h2><p class="mute">Parents see one shared bar for the whole class, not a ranking. Counts verified new memorisation since the start date.</p>
+    <label>Goal name</label><input id="gl" value="${esc(d.class.label)}">
+    <div class="row"><div><label>Measure in</label><select id="gu"><option value="juz" ${d.class.unit==="juz"?"selected":""}>Juz</option><option value="surah" ${d.class.unit==="surah"?"selected":""}>Surahs completed</option></select></div>
+    <div><label>Target</label><input id="gtg" type="number" step="0.5" min="0.5" value="${+d.class.target}"></div></div>
+    <label>Start date</label><input id="gs" type="date" value="${d.class.start}">
+    <button id="sg" style="margin-top:12px">Save goal</button></div>${classCard(d.class,true)}
     <div class="card"><h2>Change teacher PIN</h2><div class="row"><input id="np" type="password" inputmode="numeric" placeholder="New PIN (6+ digits)"><button id="cp" style="flex:0 0 auto">Change</button></div></div>`;
   app.innerHTML=head("Teacher",1)+tabs+body;
   $("#out").onclick=()=>{S.del("tch");home()};
@@ -244,7 +268,7 @@ async function teacherView(pin,d){
   app.querySelectorAll("[data-b]").forEach(x=>x.onclick=()=>boyView(pin,d,x.dataset.b));
   if($("#ab"))$("#ab").onclick=async()=>{try{const r=await rpc("teacher_add_boy",{p_pin:pin,p_name:$("#nb").value});const nm=$("#nb").value;const d2=await rpc("teacher_get",{p_pin:pin});teacherView(pin,d2);
     $("#newcode").innerHTML=`<p>Give these to ${esc(nm)}'s parent (shown once):</p><div class="row"><div><label>Code</label><div class="code">${r.code}</div></div><div><label>PIN</label><div class="code">${r.pin}</div></div></div>`}catch(e){toast(e.message)}};
-  if($("#sg"))$("#sg").onclick=async()=>{try{const r=await rpc("teacher_set_goal",{p_pin:pin,p_label:$("#gl").value,p_target:+$("#gtg").value,p_start:$("#gs").value});toast("Goal saved");teacherView(pin,r)}catch(e){toast(e.message)}};
+  if($("#sg"))$("#sg").onclick=async()=>{try{const r=await rpc("teacher_set_goal",{p_pin:pin,p_label:$("#gl").value,p_target:+$("#gtg").value,p_start:$("#gs").value,p_unit:$("#gu").value});toast("Goal saved");teacherView(pin,r)}catch(e){toast(e.message)}};
   if($("#cp"))$("#cp").onclick=async()=>{const n=$("#np").value.trim();try{await rpc("teacher_change_pin",{p_pin:pin,p_new:n});S.set("tch",n);toast("PIN changed");teacherView(n)}catch(e){toast(e.message)}};
 }
 function boyView(pin,d,id){

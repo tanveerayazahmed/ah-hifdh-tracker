@@ -369,6 +369,31 @@ function goalCard(goal,mem,name){
   <details style="margin-top:10px"><summary class="mute" style="cursor:pointer">Surahs in this goal</summary><div class="list" style="margin-top:6px">${g.rows.map(r=>`<div class="it"><div>${esc(sname(r.s))}${r.whole?"":` <span class="mute">(ayat ${r.from}–${r.to})</span>`}<br><span class="mute">${r.h} of ${r.n} ayat</span></div><span class="pill ${r.h===r.n?"v":""}">${r.h===r.n?"done":Math.round(r.h/r.n*100)+"%"}</span></div>`).join("")}</div></details></div>`;
 }
 
+function credBox(name,code,pin,kind,note){
+  const enc=encodeURIComponent;return `<p class="mute" style="margin:0 0 6px">${note||"Shown only once."}</p><div class="row">${code?`<div><label>Code</label><div class="code">${code}</div></div>`:""}<div><label>PIN</label><div class="code">${pin}</div></div></div>
+  <div class="row" style="margin-top:10px"><button class="small" data-cimg data-n="${esc(name)}" data-c="${code||""}" data-p="${pin}" data-k="${kind}">Copy picture</button>${navigator.canShare?`<button class="small ghost" data-cshare data-n="${esc(name)}" data-c="${code||""}" data-p="${pin}" data-k="${kind}">Share</button>`:""}</div>`;
+}
+async function credImage(name,code,pin,kind){
+  await document.fonts.ready;const W=720,H=420,c=document.createElement("canvas");c.width=W*2;c.height=H*2;const x=c.getContext("2d");x.scale(2,2);
+  const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,"#1c2b25");g.addColorStop(1,"#0f1a16");x.fillStyle=g;x.beginPath();x.roundRect(0,0,W,H,28);x.fill();
+  x.strokeStyle="rgba(201,169,110,.8)";x.lineWidth=2;x.beginPath();x.roundRect(14,14,W-28,H-28,20);x.stroke();
+  x.strokeStyle="rgba(201,169,110,.35)";x.lineWidth=1;x.beginPath();x.roundRect(22,22,W-44,H-44,16);x.stroke();
+  x.textAlign="center";x.fillStyle="#c9a96e";x.font="600 15px Inter,sans-serif";x.fillText("AH HIFDH TRACKER",W/2,66);
+  x.fillStyle="#efe9dc";x.font="600 34px Fraunces,Georgia,serif";x.fillText(name,W/2,112);
+  x.fillStyle="#9aa89f";x.font="15px Inter,sans-serif";x.fillText(kind==="teacher"?"Teacher login":"Parent login",W/2,140);
+  const box=(cx,label,val)=>{x.fillStyle="rgba(0,0,0,.35)";x.beginPath();x.roundRect(cx-140,170,280,110,16);x.fill();x.strokeStyle="rgba(201,169,110,.4)";x.stroke();
+    x.fillStyle="#9aa89f";x.font="14px Inter,sans-serif";x.fillText(label,cx,198);x.fillStyle="#e6d4ab";x.font="700 42px ui-monospace,Menlo,monospace";x.fillText(val,cx,252)};
+  if(code){box(W/2-150,kind==="teacher"?"Teacher code":"Student code",code);box(W/2+150,"PIN",pin)}else box(W/2,"New PIN",pin);
+  x.fillStyle="#efe9dc";x.font="600 18px Inter,sans-serif";x.fillText(location.host,W/2,325);
+  x.fillStyle="#9aa89f";x.font="14px Inter,sans-serif";x.fillText(kind==="teacher"?'Open the link, tap "I\'m a teacher" and enter the code and PIN.':'Open the link, tap "I\'m a parent" and enter the code and PIN.',W/2,352);
+  return new Promise(r=>c.toBlob(r,"image/png"));
+}
+document.addEventListener("click",async ev=>{const b=ev.target.closest("[data-cimg],[data-cshare]");if(!b)return;
+  const blob=await credImage(b.dataset.n,b.dataset.c,b.dataset.p,b.dataset.k);
+  if(b.hasAttribute("data-cshare")){const f=new File([blob],`${b.dataset.n} login.png`,{type:"image/png"});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:"AH Hifdh Tracker login"})}catch(e){}return}}
+  try{await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);toast("Picture copied. Paste it into WhatsApp.")}
+  catch(e){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${b.dataset.n} login.png`;a.click();toast("Picture downloaded")}});
 /* ---------- views ---------- */
 const head=(sub,out)=>`<header><div class="brand">AH Hifdh Tracker<small>${sub}</small></div>${out?`<button class="ghost small" id="out">Log out</button>`:""}</header>`;
 function home(){
@@ -432,9 +457,9 @@ async function teacherView(pin,d){
       <div class="row" style="margin-top:12px"><button class="ghost small" data-trp="${t.id}">Reset PIN</button><button class="ghost small" data-tact="${t.id}" data-on="${t.active?0:1}">${t.active?"Deactivate":"Activate"}</button></div><div data-tpo="${t.id}"></div></details></div>`).join("")}`;
   if(TAB==="class")body=`<div class="card"><h2>Change teacher PIN</h2><div class="row"><input id="np" type="password" inputmode="numeric" placeholder="New PIN"><button id="cp" style="flex:0 0 auto">Change</button></div></div>`;
   app.innerHTML=head(d.role==="admin"?"Admin":esc(d.me),1)+tabs+body;
-  if($("#at"))$("#at").onclick=async()=>{const nm=$("#nt").value;try{const r=await rpc("admin_add_teacher",{p_pin:pin,p_name:nm});await teacherView(pin);$("#tcode").innerHTML=`<p>Give these to ${esc(nm)} (shown once):</p><div class="row"><div><label>Code</label><div class="code">${r.code}</div></div><div><label>PIN</label><div class="code">${r.pin}</div></div></div>`}catch(e){toast(e.message)}};
+  if($("#at"))$("#at").onclick=async()=>{const nm=$("#nt").value;try{const r=await rpc("admin_add_teacher",{p_pin:pin,p_name:nm});await teacherView(pin);$("#tcode").innerHTML=credBox(nm,r.code,r.pin,"teacher",`Give these to ${esc(nm)}. Shown only once.`)}catch(e){toast(e.message)}};
   app.querySelectorAll("[data-as]").forEach(x=>x.onchange=async()=>{try{const r=await rpc("admin_assign",{p_pin:pin,p_boy:x.dataset.as,p_tid:x.dataset.tid,p_on:x.checked});d.teachers=r.teachers;d.boys=r.boys;toast(x.checked?"Assigned":"Removed")}catch(e){toast(e.message);x.checked=!x.checked}});
-  app.querySelectorAll("[data-trp]").forEach(x=>x.onclick=async()=>{if(!confirm("Create a new PIN for this teacher? The old one stops working."))return;try{const r=await rpc("admin_reset_teacher_pin",{p_pin:pin,p_tid:x.dataset.trp});app.querySelector(`[data-tpo="${x.dataset.trp}"]`).innerHTML=`<p>New PIN (shown once):</p><div class="code">${r.pin}</div>`}catch(e){toast(e.message)}});
+  app.querySelectorAll("[data-trp]").forEach(x=>x.onclick=async()=>{if(!confirm("Create a new PIN for this teacher? The old one stops working."))return;try{const r=await rpc("admin_reset_teacher_pin",{p_pin:pin,p_tid:x.dataset.trp});{const t=d.teachers.find(q=>q.id===x.dataset.trp);app.querySelector(`[data-tpo="${x.dataset.trp}"]`).innerHTML=credBox(t.name,r.code,r.pin,"teacher","New PIN. Shown only once.")}}catch(e){toast(e.message)}});
   app.querySelectorAll("[data-tact]").forEach(x=>x.onclick=async()=>{try{teacherView(pin,await rpc("admin_update_teacher",{p_pin:pin,p_tid:x.dataset.tact,p_name:null,p_active:x.dataset.on==="1"}))}catch(e){toast(e.message)}});
   $("#out").onclick=()=>{S.del("tch");home()};
   app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{TAB=b.dataset.t;teacherView(pin,d)});
@@ -451,7 +476,7 @@ function boyView(pin,d,id,fresh){
   const hist=[...b.entries].reverse().slice(0,25);
   const pri=b.entries.filter(e=>e.kind==="prior"),pm=model(pri.map(e=>({...e,status:"verified"})));
   app.innerHTML=head(esc(b.name),1)+`<p><a href="#" id="bk">← All students</a></p>
-  ${fresh?`<div class="card"><h2>${esc(b.name)} added</h2><p class="mute" style="margin:0 0 6px">Give these to the parent now. The PIN is shown only once.</p><div class="row"><div><label>Code</label><div class="code">${fresh.code}</div></div><div><label>PIN</label><div class="code">${fresh.pin}</div></div></div></div>`:""}
+  ${fresh?`<div class="card"><h2>${esc(b.name)} added</h2>${credBox(b.name,fresh.code,fresh.pin,"parent","Give these to the parent now. The PIN is shown only once.")}</div>`:""}
   <div class="card"><h3>Teachers</h3>${d.role==="admin"?`<div class="list">${(d.teachers||[]).filter(t=>t.active).map(t=>`<label class="it" style="margin:0;cursor:pointer;color:var(--ink);font-size:14px"><span>${esc(t.name)}</span><input type="checkbox" style="width:20px;height:20px;accent-color:#c9a96e" data-bas="${t.id}" ${b.teachers.some(x=>x.id===t.id)?"checked":""}></label>`).join("")||"<p class='mute' style='margin:0'>No teachers yet. Add them in the Teachers tab.</p>"}</div>`:`<p style="margin:0">${b.teachers.map(t=>esc(t.name)).join(", ")||"–"}</p>`}</div>
   <div class="card" id="bl"><details ${pri.length?"":"open"}><summary style="cursor:pointer;font-weight:700;font-size:17px">Step 1 · Already memorised ${pri.length?`<span class="mute" style="font-weight:500">(${pm.juzDone.length} juz · ${pm.surahsDone.length} surahs recorded, tap to add more)</span>`:""}</summary>
     <p class="mute" style="margin:8px 0 4px">Record what ${esc(b.name)} knew when he joined, by juz, whole surah or part of a surah. Add each portion, one at a time.</p>
@@ -495,7 +520,7 @@ function boyView(pin,d,id,fresh){
   bindForm("tf",async v=>{const r=await rpc("teacher_add_many",{p_pin:pin,p_boy:id,p_items:v.items,p_mistakes:v.mistakes,p_date:v.date});toast("Saved");reload(r)});
   $("#cpy").onclick=()=>{navigator.clipboard.writeText($("#wr").value).then(()=>toast("Copied"),()=>{$("#wr").select();toast("Select and copy")})};
   app.querySelectorAll("[data-del]").forEach(x=>x.onclick=async()=>{if(!confirm("Delete this entry?"))return;try{reload(await rpc("teacher_delete",{p_pin:pin,p_id:+x.dataset.del}))}catch(e){toast(e.message)}});
-  $("#rp").onclick=async()=>{if(!confirm("Create a new PIN? The old one will stop working."))return;try{const r=await rpc("teacher_reset_pin",{p_pin:pin,p_boy:id});$("#rpo").innerHTML=`<p>New PIN (shown once):</p><div class="code">${r.pin}</div>`}catch(e){toast(e.message)}};
+  $("#rp").onclick=async()=>{if(!confirm("Create a new PIN? The old one will stop working."))return;try{const r=await rpc("teacher_reset_pin",{p_pin:pin,p_boy:id});$("#rpo").innerHTML=credBox(b.name,r.code,r.pin,"parent","New PIN. Shown only once.")}catch(e){toast(e.message)}};
   $("#ia").onclick=async()=>{try{reload(await rpc("teacher_update_boy",{p_pin:pin,p_boy:id,p_name:null,p_active:!b.active}))}catch(e){toast(e.message)}};
 }
 document.addEventListener("wheel",()=>{const a=document.activeElement;if(a&&a.type==="number")a.blur()},{passive:true});

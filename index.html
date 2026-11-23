@@ -186,25 +186,38 @@ function weeklyText(name,entries){
   if(m.nudges[0])t+=`\nNext target: ${m.nudges[0].t}`;
   return t+"\n\nJazakAllahu khairan";
 }
+function juzItems(j1,j2,kind){const out=[];for(let id=Q.jz[j1-1];id<Q.jz[j2];){const s=surahOf(id),f=id-Q.ss[s-1]+1,end=Math.min(Q.jz[j2]-1,Q.ss[s-1]+Q.sc[s-1]-1);out.push({kind,surah:s,f,t:end-Q.ss[s-1]+1});id=end+1}return out}
 function entryForm(id,kinds){
   let o="";for(let s=1;s<=114;s++)o+=`<option value="${s}">${sname(s)}</option>`;
+  let jo="";for(let j=1;j<=30;j++)jo+=`<option value="${j}">Juz ${j}</option>`;
   return `<div id="${id}"><div class="row"><div><label>Type</label><select name="kind">${kinds.map(k=>`<option value="${k[0]}">${k[1]}</option>`).join("")}</select></div>
   <div><label>Date</label><input type="date" name="date" value="${dstr(today())}"></div></div>
-  <label>Surah</label><select name="surah">${o}</select>
-  <div class="row"><div><label>From ayah</label><input type="number" name="from" min="1" value="1" inputmode="numeric"></div><div><label>To ayah</label><input type="number" name="to" min="1" value="1" inputmode="numeric"></div></div>
-  <div class="row" style="margin-top:6px"><button type="button" class="ghost small" data-whole>Whole surah</button><span class="mute" data-info style="align-self:center"></span></div>
+  <label>Memorised as</label><div class="tabs" style="margin:0" data-modes><button type="button" data-mode="part" class="on">Part of a surah</button><button type="button" data-mode="surah">Whole surah</button><button type="button" data-mode="juz">Whole juz</button></div>
+  <div data-p="part"><label>Surah</label><select name="surah">${o}</select>
+    <div class="row"><div><label>From ayah</label><input type="number" name="from" min="1" value="1" inputmode="numeric"></div><div><label>To ayah</label><input type="number" name="to" min="1" value="1" inputmode="numeric"></div></div>
+    <p class="mute" data-info style="margin:6px 0 0"></p></div>
+  <div data-p="surah" style="display:none"><div class="row"><div><label>From surah</label><select name="s1">${o}</select></div><div><label>To surah</label><select name="s2">${o}</select></div></div>
+    <p class="mute" style="margin:6px 0 0">For one surah, choose the same surah in both.</p></div>
+  <div data-p="juz" style="display:none"><div class="row"><div><label>From juz</label><select name="j1">${jo}</select></div><div><label>To juz</label><select name="j2">${jo}</select></div></div>
+    <p class="mute" style="margin:6px 0 0">For one juz, choose the same juz in both.</p></div>
   <label>Mistakes</label><div class="row"><button type="button" class="ghost" data-m="-1" style="flex:0 0 52px">−</button><input type="number" name="mistakes" value="0" min="0" style="text-align:center"><button type="button" class="ghost" data-m="1" style="flex:0 0 52px">+</button></div>
   <button type="button" data-save style="width:100%;margin-top:12px">Save</button><div class="err" data-err></div></div>`;
 }
 function bindForm(id,onSave){
-  const f=$("#"+id),g=n=>f.querySelector(`[name=${n}]`);
-  const info=()=>{const s=+g("surah").value;f.querySelector("[data-info]").textContent=`${Q.sc[s-1]} ayat in this surah`};
+  const f=$("#"+id),g=n=>f.querySelector(`[name=${n}]`);let mode="part";
+  const info=()=>{const s=+g("surah").value;f.querySelector("[data-info]").textContent=`${EN[s-1]} has ${Q.sc[s-1]} ayat`};
   g("surah").onchange=()=>{info();g("from").value=1;g("to").value=1};info();
-  f.querySelector("[data-whole]").onclick=()=>{g("from").value=1;g("to").value=Q.sc[+g("surah").value-1]};
+  g("s1").onchange=()=>{if(+g("s2").value<+g("s1").value)g("s2").value=g("s1").value};
+  g("j1").onchange=()=>{if(+g("j2").value<+g("j1").value)g("j2").value=g("j1").value};
+  f.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;f.querySelectorAll("[data-mode]").forEach(x=>x.classList.toggle("on",x===b));f.querySelectorAll("[data-p]").forEach(p=>p.style.display=p.dataset.p===mode?"":"none")});
   f.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{g("mistakes").value=Math.max(0,(+g("mistakes").value||0)+ +b.dataset.m)});
-  f.querySelector("[data-save]").onclick=async ev=>{const s=+g("surah").value,a=+g("from").value,b=+g("to").value,err=f.querySelector("[data-err]");err.textContent="";
-    if(!(a>=1&&b>=a&&b<=Q.sc[s-1])){err.textContent=`Check the ayah numbers (1–${Q.sc[s-1]}, "to" not less than "from").`;return}
-    ev.target.disabled=true;try{await onSave({kind:g("kind").value,surah:s,from:a,to:b,mistakes:+g("mistakes").value||0,date:g("date").value})}catch(e){err.textContent=e.message}ev.target.disabled=false};
+  f.querySelector("[data-save]").onclick=async ev=>{const err=f.querySelector("[data-err]"),kind=g("kind").value;err.textContent="";let items=[];
+    if(mode==="part"){const s=+g("surah").value,a=+g("from").value,b=+g("to").value;
+      if(!(a>=1&&b>=a&&b<=Q.sc[s-1])){err.textContent=`Check the ayah numbers (1–${Q.sc[s-1]}, "to" not less than "from").`;return}items=[{kind,surah:s,f:a,t:b}]}
+    else if(mode==="surah"){const a=+g("s1").value,b=+g("s2").value;if(b<a){err.textContent="'To surah' must not be before 'From surah'.";return}for(let s=a;s<=b;s++)items.push({kind,surah:s,f:1,t:Q.sc[s-1]})}
+    else{const a=+g("j1").value,b=+g("j2").value;if(b<a){err.textContent="'To juz' must not be before 'From juz'.";return}items=juzItems(a,b,kind)}
+    if(items.length>150){err.textContent="That's too much for one entry. Please split it.";return}
+    ev.target.disabled=true;try{await onSave({items,mistakes:+g("mistakes").value||0,date:g("date").value})}catch(e){err.textContent=e.message}ev.target.disabled=false};
 }
 
 /* ---------- views ---------- */
@@ -226,7 +239,7 @@ async function parentView(c,d){
   try{d=d||await rpc("parent_get",{p_code:c.code,p_pin:c.pin})}catch(e){S.del("par");return parentLogin()}
   app.innerHTML=head(esc(d.boy.name),1)+`<button id="lg" style="width:100%;margin-bottom:12px;padding:14px">+ Log today's Hifdh</button><div class="card" id="lgc" style="display:none"><h2>Log today's Hifdh</h2>${entryForm("pf",[["new","New lesson"],["revision","Revision"]])}<p class="mute" style="margin:8px 0 0">The teacher checks each entry before it counts.</p></div>`+dashboard(d.boy.name,d.entries,d.class);
   $("#out").onclick=()=>{S.del("par");home()};bindMap(d.entries);$("#lg").onclick=()=>{$("#lgc").style.display="block";$("#lg").style.display="none"};
-  bindForm("pf",async v=>{const r=await rpc("parent_add",{p_code:c.code,p_pin:c.pin,p_kind:v.kind,p_surah:v.surah,p_from:v.from,p_to:v.to,p_mistakes:v.mistakes,p_date:v.date});toast("Saved. Waiting for teacher to verify.");parentView(c,r)});
+  bindForm("pf",async v=>{const r=await rpc("parent_add_many",{p_code:c.code,p_pin:c.pin,p_items:v.items,p_mistakes:v.mistakes,p_date:v.date});toast("Saved. Waiting for teacher to verify.");parentView(c,r)});
 }
 async function teacherLogin(){
   const s=S.get("tch");if(s)return teacherView(s);
@@ -245,7 +258,7 @@ async function teacherView(pin,d){
   pend.sort((a,b)=>a.date<b.date?-1:1);
   const tabs=`<div class="tabs"><button data-t="verify" class="${TAB==="verify"?"on":""}">To verify (${pend.length})</button><button data-t="boys" class="${TAB==="boys"?"on":""}">Boys (${d.boys.filter(b=>b.active).length})</button><button data-t="class" class="${TAB==="class"?"on":""}">Class &amp; settings</button></div>`;
   let body="";
-  if(TAB==="verify")body=pend.length?`<div class="card list">${pend.map(e=>`<div class="it" style="flex-wrap:wrap"><div style="flex:1 1 200px"><b>${esc(e.boy.name)}</b> · ${e.kind==="new"?"New":"Revision"}<br>${esc(sname(e.surah))} ${e.from}–${e.to} <span class="mute">· ${e.date}</span></div>
+  if(TAB==="verify")body=pend.length?`${pend.length>1?`<button id="va" style="width:100%;margin-bottom:12px">Verify all ${pend.length} as entered</button>`:""}<div class="card list">${pend.map(e=>`<div class="it" style="flex-wrap:wrap"><div style="flex:1 1 200px"><b>${esc(e.boy.name)}</b> · ${e.kind==="new"?"New":"Revision"}<br>${esc(sname(e.surah))} ${e.from}–${e.to} <span class="mute">· ${e.date}</span></div>
     <div class="row" style="flex:0 0 auto;align-items:center"><input type="number" min="0" value="${e.mistakes}" data-mk="${e.id}" style="width:64px" title="Mistakes"><button class="small" data-v="${e.id}">Verify</button><button class="small ghost" data-r="${e.id}">Reject</button></div></div>`).join("")}</div>`
     :`<div class="card mute">Nothing waiting. All entries are verified.</div>`;
   if(TAB==="boys"){
@@ -266,6 +279,7 @@ async function teacherView(pin,d){
   app.querySelectorAll("[data-v],[data-r]").forEach(b=>b.onclick=async()=>{b.disabled=true;const id=+(b.dataset.v||b.dataset.r);
     try{const r=await rpc("teacher_review",{p_pin:pin,p_id:id,p_status:b.dataset.v?"verified":"rejected",p_mistakes:+app.querySelector(`[data-mk="${id}"]`).value||0});teacherView(pin,r)}catch(e){toast(e.message);b.disabled=false}});
   app.querySelectorAll("[data-b]").forEach(x=>x.onclick=()=>boyView(pin,d,x.dataset.b));
+  if($("#va"))$("#va").onclick=async ev=>{if(!confirm(`Verify all ${pend.length} entries with the mistakes as entered?`))return;ev.target.disabled=true;try{teacherView(pin,await rpc("teacher_verify_many",{p_pin:pin,p_ids:pend.map(e=>e.id)}))}catch(e){toast(e.message);ev.target.disabled=false}};
   if($("#ab"))$("#ab").onclick=async()=>{try{const r=await rpc("teacher_add_boy",{p_pin:pin,p_name:$("#nb").value});const nm=$("#nb").value;const d2=await rpc("teacher_get",{p_pin:pin});teacherView(pin,d2);
     $("#newcode").innerHTML=`<p>Give these to ${esc(nm)}'s parent (shown once):</p><div class="row"><div><label>Code</label><div class="code">${r.code}</div></div><div><label>PIN</label><div class="code">${r.pin}</div></div></div>`}catch(e){toast(e.message)}};
   if($("#sg"))$("#sg").onclick=async()=>{try{const r=await rpc("teacher_set_goal",{p_pin:pin,p_label:$("#gl").value,p_target:+$("#gtg").value,p_start:$("#gs").value,p_unit:$("#gu").value});toast("Goal saved");teacherView(pin,r)}catch(e){toast(e.message)}};
@@ -276,21 +290,16 @@ function boyView(pin,d,id){
   let so="";for(let s=1;s<=114;s++)so+=`<option value="${s}">${sname(s)}</option>`;
   const hist=[...b.entries].reverse().slice(0,25);
   app.innerHTML=head(esc(b.name),1)+`<p><a href="#" id="bk">← All boys</a></p>
-  <div class="card"><h2>Add a verified entry</h2>${entryForm("tf",[["new","New lesson"],["revision","Revision"]])}</div>
+  <div class="card"><h2>Add an entry</h2><p class="mute" style="margin:-4px 0 4px">Entries you add are verified straight away. Use "Already memorised" for what the boy knew before the tracker.</p>${entryForm("tf",[["new","New lesson"],["revision","Revision"],["prior","Already memorised (before tracker)"]])}</div>
   ${dashboard(b.name,b.entries,d.class)}
   <div class="card"><h2>Weekly report for parent</h2><textarea id="wr" style="width:100%;height:170px;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px">${esc(weeklyText(b.name,b.entries))}</textarea>
     <div class="row"><button id="cpy">Copy</button><a class="btn" style="text-align:center;text-decoration:none" target="_blank" href="https://wa.me/?text=${encodeURIComponent(weeklyText(b.name,b.entries))}">WhatsApp</a></div></div>
-  <div class="card"><h2>Already memorised (before using the tracker)</h2><p class="mute">Marks whole surahs as memorised, e.g. 78 to 114 for Juz Amma.</p>
-    <div class="row"><div><label>From surah</label><select id="ps1">${so}</select></div><div><label>To surah</label><select id="ps2">${so}</select></div></div>
-    <button id="pr" style="margin-top:10px">Add</button></div>
   <div class="card"><h2>History</h2><div class="list">${hist.map(e=>`<div class="it"><div>${e.kind==="new"?"New":e.kind==="revision"?"Revision":"Already memorised"}: ${esc(EN[e.surah-1])} ${e.from}–${e.to}<br><span class="mute">${e.date} · ${e.mistakes} mistakes · by ${e.source}</span></div><div class="row" style="flex:0 0 auto;align-items:center"><span class="pill ${e.status==="verified"?"v":""}">${e.status}</span><button class="small ghost" data-del="${e.id}">Delete</button></div></div>`).join("")||"<p class='mute'>No entries yet.</p>"}</div></div>
   <div class="card"><h2>Parent access</h2><div class="row"><button class="ghost" id="rp">Reset parent PIN</button><button class="ghost" id="ia">${b.active?"Mark inactive":"Mark active"}</button></div><div id="rpo"></div><p class="mute">Code: <b>${b.code}</b></p></div>`;
-  $("#ps1").value=78;$("#ps2").value=114;
   $("#bk").onclick=e=>{e.preventDefault();TAB="boys";teacherView(pin,d)};$("#out").onclick=()=>{S.del("tch");home()};bindMap(b.entries);
   const reload=r=>boyView(pin,r,id);
-  bindForm("tf",async v=>{const r=await rpc("teacher_add",{p_pin:pin,p_boy:id,p_kind:v.kind,p_surah:v.surah,p_from:v.from,p_to:v.to,p_mistakes:v.mistakes,p_date:v.date});toast("Saved");reload(r)});
+  bindForm("tf",async v=>{const r=await rpc("teacher_add_many",{p_pin:pin,p_boy:id,p_items:v.items,p_mistakes:v.mistakes,p_date:v.date});toast("Saved");reload(r)});
   $("#cpy").onclick=()=>{navigator.clipboard.writeText($("#wr").value).then(()=>toast("Copied"),()=>{$("#wr").select();toast("Select and copy")})};
-  $("#pr").onclick=async()=>{const a=+$("#ps1").value,z=+$("#ps2").value;if(z<a)return toast("'To' must be after 'From'");if(!confirm(`Mark surahs ${a} to ${z} as already memorised?`))return;try{reload(await rpc("teacher_add_prior",{p_pin:pin,p_boy:id,p_from_surah:a,p_to_surah:z}))}catch(e){toast(e.message)}};
   app.querySelectorAll("[data-del]").forEach(x=>x.onclick=async()=>{if(!confirm("Delete this entry?"))return;try{reload(await rpc("teacher_delete",{p_pin:pin,p_id:+x.dataset.del}))}catch(e){toast(e.message)}});
   $("#rp").onclick=async()=>{if(!confirm("Create a new PIN? The old one will stop working."))return;try{const r=await rpc("teacher_reset_pin",{p_pin:pin,p_boy:id});$("#rpo").innerHTML=`<p>New PIN (shown once):</p><div class="code">${r.pin}</div>`}catch(e){toast(e.message)}};
   $("#ia").onclick=async()=>{try{reload(await rpc("teacher_update_boy",{p_pin:pin,p_boy:id,p_name:null,p_active:!b.active}))}catch(e){toast(e.message)}};

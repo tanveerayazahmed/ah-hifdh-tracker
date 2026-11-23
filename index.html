@@ -394,10 +394,11 @@ function goalCard(goal,mem,name){
   <details style="margin-top:10px"><summary class="mute" style="cursor:pointer">Surahs in this goal</summary><div class="list" style="margin-top:6px">${g.rows.map(r=>`<div class="it"><div>${esc(sname(r.s))}${r.whole?"":` <span class="mute">(ayat ${r.from}–${r.to})</span>`}<br><span class="mute">${r.h} of ${r.n} ayat</span></div><span class="pill ${r.h===r.n?"v":""}">${r.h===r.n?"done":Math.round(r.h/r.n*100)+"%"}</span></div>`).join("")}</div></details></div>`;
 }
 
+const ADM=d=>d&&(d.role==="admin"||d.role==="super");
 const MODE={online:"Online",inperson:"In person",both:"Online & in person"};
 const modePill=m=>`<span class="pill ${m==="online"?"":"v"}" style="margin-left:6px">${MODE[m]||"In person"}</span>`;
-function credLink(code,pin,kind){return `${location.origin}/#${kind==="teacher"?"t":"p"}=${encodeURIComponent(code)}.${encodeURIComponent(pin)}`}
-function credText(name,code,pin,kind){return `Assalamu alaikum. AH Hifdh Tracker ${kind==="teacher"?"teacher":"parent"} login for ${name}:\n\nCode: ${code}\nPIN: ${pin}\n\nTap to sign in: ${credLink(code,pin,kind)}`}
+function credLink(code,pin,kind){return `${location.origin}/#${kind!=="parent"?"t":"p"}=${encodeURIComponent(code)}.${encodeURIComponent(pin)}`}
+function credText(name,code,pin,kind){return `Assalamu alaikum. AH Hifdh Tracker ${kind} login for ${name}:\n\nCode: ${code}\nPIN: ${pin}\n\nTap to sign in: ${credLink(code,pin,kind)}`}
 function credBox(name,code,pin,kind,note){
   const enc=encodeURIComponent;return `<p class="mute" style="margin:0 0 6px">${note||"Shown only once."}</p><div class="row">${code?`<div><label>Code</label><div class="code">${code}</div></div>`:""}<div><label>PIN</label><div class="code">${pin}</div></div></div>
   <div class="row" style="margin-top:10px"><button class="small" data-ctxt data-n="${esc(name)}" data-c="${code||""}" data-p="${pin}" data-k="${kind}">Copy message with link</button><button class="small ghost" data-cimg data-n="${esc(name)}" data-c="${code||""}" data-p="${pin}" data-k="${kind}">Copy picture</button>${navigator.canShare?`<button class="small ghost" data-cshare data-n="${esc(name)}" data-c="${code||""}" data-p="${pin}" data-k="${kind}">Share</button>`:""}</div>`;
@@ -409,12 +410,12 @@ async function credImage(name,code,pin,kind){
   x.strokeStyle="rgba(201,169,110,.35)";x.lineWidth=1;x.beginPath();x.roundRect(22,22,W-44,H-44,16);x.stroke();
   x.textAlign="center";x.fillStyle="#c9a96e";x.font="600 15px Inter,sans-serif";x.fillText("AH HIFDH TRACKER",W/2,66);
   x.fillStyle="#efe9dc";x.font="600 34px Fraunces,Georgia,serif";x.fillText(name,W/2,112);
-  x.fillStyle="#9aa89f";x.font="15px Inter,sans-serif";x.fillText(kind==="teacher"?"Teacher login":"Parent login",W/2,140);
+  x.fillStyle="#9aa89f";x.font="15px Inter,sans-serif";x.fillText(kind==="admin"?"Admin login":kind==="teacher"?"Teacher login":"Parent login",W/2,140);
   const box=(cx,label,val)=>{x.fillStyle="rgba(0,0,0,.35)";x.beginPath();x.roundRect(cx-140,170,280,110,16);x.fill();x.strokeStyle="rgba(201,169,110,.4)";x.stroke();
     x.fillStyle="#9aa89f";x.font="14px Inter,sans-serif";x.fillText(label,cx,198);x.fillStyle="#e6d4ab";x.font="700 42px ui-monospace,Menlo,monospace";x.fillText(val,cx,252)};
-  if(code){box(W/2-150,kind==="teacher"?"Teacher code":"Student code",code);box(W/2+150,"PIN",pin)}else box(W/2,"New PIN",pin);
+  if(code){box(W/2-150,kind==="admin"?"Admin code":kind==="teacher"?"Teacher code":"Student code",code);box(W/2+150,"PIN",pin)}else box(W/2,"New PIN",pin);
   x.fillStyle="#efe9dc";x.font="600 18px Inter,sans-serif";x.fillText(location.host,W/2,325);
-  x.fillStyle="#9aa89f";x.font="14px Inter,sans-serif";x.fillText(kind==="teacher"?'Open the link, tap "I\'m a teacher" and enter the code and PIN.':'Open the link, tap "I\'m a parent" and enter the code and PIN.',W/2,352);
+  x.fillStyle="#9aa89f";x.font="14px Inter,sans-serif";x.fillText(kind!=="parent"?'Open the link, tap "I\'m a teacher / admin" and enter the code and PIN.':'Open the link, tap "I\'m a parent" and enter the code and PIN.',W/2,352);
   return new Promise(r=>c.toBlob(r,"image/png"));
 }
 document.addEventListener("click",async ev=>{const b=ev.target.closest("[data-cimg],[data-cshare],[data-ctxt]");if(!b)return;
@@ -429,8 +430,8 @@ document.addEventListener("click",async ev=>{const b=ev.target.closest("[data-ci
 const head=(sub,out)=>`<header><div class="brand">AH Hifdh Tracker<small>${sub}</small></div>${out?`<button class="ghost small" id="out">Log out</button>`:""}</header>`;
 function home(){
   app.innerHTML=head("Al Hikmah Students")+`${banner()}
-  <div class="choose"><button id="gp">I'm a parent</button><button class="ghost" id="gt">I'm a teacher</button></div>
-  <p style="text-align:center;margin-top:18px"><a href="#" id="ga" class="mute">Admin login</a></p>`;
+  <div class="choose"><button id="gp">I'm a parent</button><button class="ghost" id="gt">I'm a teacher / admin</button></div>
+  <p style="text-align:center;margin-top:18px"><a href="#" id="ga" class="mute">Super admin</a></p>`;
   $("#gp").onclick=()=>parentLogin();$("#gt").onclick=()=>staffLogin();$("#ga").onclick=e=>{e.preventDefault();teacherLogin()};
 }
 function parentLogin(){
@@ -449,8 +450,8 @@ async function parentView(c,d){
 }
 function staffLogin(){
   const s=S.get("tch");if(s)return teacherView(s);
-  app.innerHTML=head("Teacher login")+`<div class="card"><h2>Teacher login</h2><p class="mute">Use the code and PIN the admin gave you.</p>
-  <label>Teacher code</label><input id="tc" placeholder="AHT123" autocapitalize="characters"><label>PIN</label><input id="tp" type="password" inputmode="numeric">
+  app.innerHTML=head("Staff login")+`<div class="card"><h2>Teacher / admin login</h2><p class="mute">Use the code and PIN you were given.</p>
+  <label>Your code</label><input id="tc" placeholder="AHT123 or AHA123" autocapitalize="characters"><label>PIN</label><input id="tp" type="password" inputmode="numeric">
   <button id="tl" style="width:100%;margin-top:12px">Open</button><div class="err" id="te"></div><p><a href="#" id="back">← Back</a></p></div>`;
   $("#back").onclick=e=>{e.preventDefault();home()};
   $("#tl").onclick=async()=>{const k=$("#tc").value.trim().toUpperCase()+":"+$("#tp").value.trim();try{const d=await rpc("teacher_get",{p_pin:k});S.set("tch",k);teacherView(k,d)}catch(e){$("#te").textContent=e.message}};
@@ -458,8 +459,8 @@ function staffLogin(){
 async function teacherLogin(){
   const s=S.get("tch");if(s)return teacherView(s);
   let st;try{st=await rpc("teacher_status")}catch(e){app.innerHTML=head("")+`<div class="card err">${esc(e.message)}</div>`;return}
-  app.innerHTML=head("Admin")+`<div class="card"><h2>${st.setup?"Admin login":"First-time setup"}</h2>${st.setup?"":"<p class='mute'>Choose an admin PIN (at least 6 digits). Keep it private.</p>"}
-  <label>Admin PIN</label><input id="tp" type="password" inputmode="numeric">${st.setup?"":`<label>Repeat PIN</label><input id="tp2" type="password" inputmode="numeric">`}
+  app.innerHTML=head("Super admin")+`<div class="card"><h2>${st.setup?"Super admin login":"First-time setup"}</h2>${st.setup?"":"<p class='mute'>Choose a super admin PIN (at least 6 digits). Keep it private.</p>"}
+  <label>Super admin PIN</label><input id="tp" type="password" inputmode="numeric">${st.setup?"":`<label>Repeat PIN</label><input id="tp2" type="password" inputmode="numeric">`}
   <button id="tl" style="width:100%;margin-top:12px">${st.setup?"Open":"Set PIN"}</button><div class="err" id="te"></div><p><a href="#" id="back">← Back</a></p></div>`;
   $("#back").onclick=e=>{e.preventDefault();home()};
   $("#tl").onclick=async()=>{const pin=$("#tp").value.trim();try{if(!st.setup){if(pin!==$("#tp2").value.trim())throw new Error("PINs don't match");await rpc("teacher_setup",{p_pin:pin})}
@@ -470,8 +471,8 @@ async function teacherView(pin,d){
   try{d=d||await rpc("teacher_get",{p_pin:pin})}catch(e){S.del("tch");return teacherLogin()}
   const pend=[];for(const b of d.boys)for(const e of b.entries)if(e.status==="pending")pend.push({...e,boy:b});
   pend.sort((a,b)=>a.date<b.date?-1:1);
-  const tabs=`<div class="tabs"><button data-t="verify" class="${TAB==="verify"?"on":""}">To verify (${pend.length})</button><button data-t="boys" class="${TAB==="boys"?"on":""}">Students (${d.boys.filter(b=>b.active).length})</button>${d.role==="admin"?`<button data-t="teachers" class="${TAB==="teachers"?"on":""}">Teachers (${(d.teachers||[]).filter(t=>t.active).length})</button>`:""}<button data-t="class" class="${TAB==="class"?"on":""}">Settings</button></div>`;
-  if(TAB==="teachers"&&d.role!=="admin")TAB="verify";
+  const tabs=`<div class="tabs"><button data-t="verify" class="${TAB==="verify"?"on":""}">To verify (${pend.length})</button><button data-t="boys" class="${TAB==="boys"?"on":""}">Students (${d.boys.filter(b=>b.active).length})</button>${ADM(d)?`<button data-t="teachers" class="${TAB==="teachers"?"on":""}">Teachers (${(d.teachers||[]).filter(t=>t.active).length})</button>`:""}<button data-t="class" class="${TAB==="class"?"on":""}">Settings</button></div>`;
+  if(TAB==="teachers"&&!ADM(d))TAB="verify";
   let body="";
   if(TAB==="verify")body=pend.length?`${pend.length>1?`<button id="va" style="width:100%;margin-bottom:12px">Verify all ${pend.length} as entered</button>`:""}<div class="card list">${pend.map(e=>`<div class="it" style="flex-wrap:wrap"><div style="flex:1 1 200px"><b>${esc(e.boy.name)}</b> · ${e.kind==="new"?"New":"Revision"}<br>${esc(sname(e.surah))} ${e.from}–${e.to} <span class="mute">· ${e.date}</span></div>
     <div class="row" style="flex:0 0 auto;align-items:center"><input type="number" min="0" value="${e.mistakes}" data-mk="${e.id}" style="width:64px" title="Mistakes"><button class="small" data-v="${e.id}">Verify</button><button class="small ghost" data-r="${e.id}">Reject</button></div></div>`).join("")}</div>`
@@ -479,7 +480,7 @@ async function teacherView(pin,d){
   if(TAB==="boys"){
     body=`<div class="card"><h2>Add a student</h2><div class="row"><input id="nb" placeholder="Full name"><button id="ab" style="flex:0 0 auto">Add</button></div><div id="newcode"></div></div><div class="card list">`+
     d.boys.map(b=>{const m=model(b.entries);const lastD=b.entries.filter(e=>e.status==="verified"&&e.kind!=="prior").map(e=>dnum(e.date)).sort().pop();
-      return `<div class="it" style="cursor:pointer" data-b="${b.id}"><div><b>${esc(b.name)}</b>${b.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">${d.role==="admin"?`${b.teachers.length?b.teachers.map(t=>`${esc(t.name)} (${MODE[t.mode]||"In person"})`).join(", "):"No teacher"} · `:""}${(()=>{const g=goalProgress(b.goal,m.mem);return g?`Goal ${esc(b.goal.label)}: ${g.pct}% · `:"No goal · "})()}${fmt(m.full/20)} juz · this week ${fmt(m.cur.nw)} new pg · ${(b.flags||[]).length} revision needed · ${lastD?`last ${m.T-lastD}d ago`:"no sessions yet"}</span></div><span class="mute">›</span></div>`}).join("")+`</div>`;
+      return `<div class="it" style="cursor:pointer" data-b="${b.id}"><div><b>${esc(b.name)}</b>${b.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">${ADM(d)?`${b.teachers.length?b.teachers.map(t=>`${esc(t.name)} (${MODE[t.mode]||"In person"})`).join(", "):"No teacher"} · `:""}${(()=>{const g=goalProgress(b.goal,m.mem);return g?`Goal ${esc(b.goal.label)}: ${g.pct}% · `:"No goal · "})()}${fmt(m.full/20)} juz · this week ${fmt(m.cur.nw)} new pg · ${(b.flags||[]).length} revision needed · ${lastD?`last ${m.T-lastD}d ago`:"no sessions yet"}</span></div><span class="mute">›</span></div>`}).join("")+`</div>`;
   }
   if(TAB==="teachers")body=`<div class="card"><h2>Add a teacher</h2><div class="row"><input id="nt" placeholder="Teacher's name"><button id="at" style="flex:0 0 auto">Add</button></div><div id="tcode"></div></div>
     ${(d.teachers||[]).map(t=>`<div class="card"><details><summary style="cursor:pointer"><b style="font-size:16px">${esc(t.name)}</b>${t.active?"":" <span class='pill'>inactive</span>"}<br>${modePill(t.mode)}<br><span class="mute">Code ${t.code} · ${t.boys.length} student${t.boys.length===1?"":"s"} (tap to manage)</span></summary>
@@ -487,14 +488,17 @@ async function teacherView(pin,d){
       <p class="mute" style="margin:10px 0 4px">Students assigned to ${esc(t.name)}:</p>
       <div class="list">${d.boys.map(b=>`<label class="it" style="margin:0;cursor:pointer;color:var(--ink);font-size:14px"><span>${esc(b.name)}</span><input type="checkbox" style="width:20px;height:20px;accent-color:#c9a96e" data-as="${b.id}" data-tid="${t.id}" ${t.boys.includes(b.id)?"checked":""}></label>`).join("")||"<p class='mute'>Add students first.</p>"}</div>
       <div class="row" style="margin-top:12px"><button class="ghost small" data-trp="${t.id}">Reset PIN</button><button class="ghost small" data-tact="${t.id}" data-on="${t.active?0:1}">${t.active?"Deactivate":"Activate"}</button><button class="small red" data-tdel="${t.id}" data-n="${esc(t.name)}">Delete</button></div><div data-tpo="${t.id}"></div></details></div>`).join("")}`;
-  if(TAB==="class")body=`${d.role==="admin"?`<div class="card"><h2>Backup</h2><p class="mute" style="margin:-4px 0 10px">Downloads all students, teachers, entries, goals and revision items. Do this weekly and before holidays, and keep the files somewhere safe (e.g. Google Drive). PINs are not included.</p>
+  if(TAB==="class")body=`${d.role==="super"?`<div class="card"><h2>Admin users</h2><p class="mute" style="margin:-4px 0 10px">Admins can add and remove teachers and students, assign students, and see everyone. Only you can add admins and take backups.</p>
+    <div class="row"><input id="na" placeholder="Admin's name"><button id="aa" style="flex:0 0 auto">Add admin</button></div><div id="acode"></div>
+    <div class="list" style="margin-top:10px">${(d.admins||[]).map(a=>`<div class="it" style="flex-wrap:wrap"><div><b>${esc(a.name)}</b>${a.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">Code ${a.code}</span></div><div class="row" style="flex:0 0 auto"><button class="small ghost" data-trp="${a.id}" data-adm="1">Reset PIN</button><button class="small red" data-tdel="${a.id}" data-n="${esc(a.name)}">Delete</button></div><div data-tpo="${a.id}" style="flex-basis:100%"></div></div>`).join("")||"<p class='mute'>No admins yet.</p>"}</div></div>`:""}${d.role==="super"?`<div class="card"><h2>Backup</h2><p class="mute" style="margin:-4px 0 10px">Downloads all students, teachers, entries, goals and revision items. Do this weekly and before holidays, and keep the files somewhere safe (e.g. Google Drive). PINs are not included.</p>
     <div class="row"><button id="bk1">Download full backup</button><button class="ghost" id="bk2">Entries as Excel (CSV)</button></div></div>`:""}<div class="card"><h2>Change teacher PIN</h2><div class="row"><input id="np" type="password" inputmode="numeric" placeholder="New PIN"><button id="cp" style="flex:0 0 auto">Change</button></div></div>`;
-  app.innerHTML=head(d.role==="admin"?"Admin":esc(d.me),1)+tabs+body;
+  app.innerHTML=head(d.role==="super"?"Super admin":d.role==="admin"?`${esc(d.me)} · Admin`:esc(d.me),1)+tabs+body;
+  if($("#aa"))$("#aa").onclick=async()=>{const nm=$("#na").value;try{const r=await rpc("super_add_admin",{p_pin:pin,p_name:nm});await teacherView(pin);$("#acode").innerHTML=credBox(nm,r.code,r.pin,"admin",`Give these to ${esc(nm)}. Shown only once.`)}catch(e){toast(e.message)}};
   if($("#at"))$("#at").onclick=async()=>{const nm=$("#nt").value;try{const r=await rpc("admin_add_teacher",{p_pin:pin,p_name:nm});await teacherView(pin);$("#tcode").innerHTML=credBox(nm,r.code,r.pin,"teacher",`Give these to ${esc(nm)}. Shown only once.`)}catch(e){toast(e.message)}};
   app.querySelectorAll("[data-as]").forEach(x=>x.onchange=async()=>{try{const r=await rpc("admin_assign",{p_pin:pin,p_boy:x.dataset.as,p_tid:x.dataset.tid,p_on:x.checked});d.teachers=r.teachers;d.boys=r.boys;toast(x.checked?"Assigned":"Removed")}catch(e){toast(e.message);x.checked=!x.checked}});
   app.querySelectorAll("[data-tmode]").forEach(x=>x.onchange=async()=>{try{const r=await rpc("admin_set_teacher_mode",{p_pin:pin,p_tid:x.dataset.tmode,p_mode:x.value});d.teachers=r.teachers;d.boys=r.boys;toast("Saved")}catch(e){toast(e.message)}});
-  app.querySelectorAll("[data-trp]").forEach(x=>x.onclick=async()=>{if(!confirm("Create a new PIN for this teacher? The old one stops working."))return;try{const r=await rpc("admin_reset_teacher_pin",{p_pin:pin,p_tid:x.dataset.trp});{const t=d.teachers.find(q=>q.id===x.dataset.trp);app.querySelector(`[data-tpo="${x.dataset.trp}"]`).innerHTML=credBox(t.name,r.code,r.pin,"teacher","New PIN. Shown only once.")}}catch(e){toast(e.message)}});
-  app.querySelectorAll("[data-tdel]").forEach(x=>x.onclick=async()=>{if(prompt(`Delete teacher ${x.dataset.n}? Their login stops working and they are removed from all students. Student records stay.\n\nType DELETE to confirm.`)!=="DELETE")return;
+  app.querySelectorAll("[data-trp]").forEach(x=>x.onclick=async()=>{if(!confirm("Create a new PIN for this teacher? The old one stops working."))return;try{const r=await rpc("admin_reset_teacher_pin",{p_pin:pin,p_tid:x.dataset.trp});{const t=(d.teachers||[]).concat(d.admins||[]).find(q=>q.id===x.dataset.trp);app.querySelector(`[data-tpo="${x.dataset.trp}"]`).innerHTML=credBox(t.name,r.code,r.pin,x.dataset.adm?"admin":"teacher","New PIN. Shown only once.")}}catch(e){toast(e.message)}});
+  app.querySelectorAll("[data-tdel]").forEach(x=>x.onclick=async()=>{if(prompt(`Delete ${x.dataset.n}? Their login stops working${x.closest("[data-tpo]")?"":""} and they are removed from all students. Student records stay.\n\nType DELETE to confirm.`)!=="DELETE")return;
     try{teacherView(pin,await rpc("admin_delete_teacher",{p_pin:pin,p_tid:x.dataset.tdel}));toast("Teacher deleted")}catch(e){toast(e.message)}});
   app.querySelectorAll("[data-tact]").forEach(x=>x.onclick=async()=>{try{teacherView(pin,await rpc("admin_update_teacher",{p_pin:pin,p_tid:x.dataset.tact,p_name:null,p_active:x.dataset.on==="1"}))}catch(e){toast(e.message)}});
   $("#out").onclick=()=>{S.del("tch");home()};
@@ -519,7 +523,7 @@ function boyView(pin,d,id,fresh){
   const pri=b.entries.filter(e=>e.kind==="prior"),pm=model(pri.map(e=>({...e,status:"verified"})));
   app.innerHTML=head(esc(b.name),1)+`<p><a href="#" id="bk">← All students</a></p>
   ${fresh?`<div class="card"><h2>${esc(b.name)} added</h2>${credBox(b.name,fresh.code,fresh.pin,"parent","Give these to the parent now. The PIN is shown only once.")}</div>`:""}
-  <div class="card"><h3>Teachers</h3>${d.role==="admin"?`<div class="list">${(d.teachers||[]).filter(t=>t.active).map(t=>`<label class="it" style="margin:0;cursor:pointer;color:var(--ink);font-size:14px"><span>${esc(t.name)}${modePill(t.mode)}</span><input type="checkbox" style="width:20px;height:20px;accent-color:#c9a96e" data-bas="${t.id}" ${b.teachers.some(x=>x.id===t.id)?"checked":""}></label>`).join("")||"<p class='mute' style='margin:0'>No teachers yet. Add them in the Teachers tab.</p>"}</div>`:`<div>${b.teachers.map(t=>`<div style="margin:4px 0">${esc(t.name)}${modePill(t.mode)}</div>`).join("")||"–"}</div>`}</div>
+  <div class="card"><h3>Teachers</h3>${ADM(d)?`<div class="list">${(d.teachers||[]).filter(t=>t.active).map(t=>`<label class="it" style="margin:0;cursor:pointer;color:var(--ink);font-size:14px"><span>${esc(t.name)}${modePill(t.mode)}</span><input type="checkbox" style="width:20px;height:20px;accent-color:#c9a96e" data-bas="${t.id}" ${b.teachers.some(x=>x.id===t.id)?"checked":""}></label>`).join("")||"<p class='mute' style='margin:0'>No teachers yet. Add them in the Teachers tab.</p>"}</div>`:`<div>${b.teachers.map(t=>`<div style="margin:4px 0">${esc(t.name)}${modePill(t.mode)}</div>`).join("")||"–"}</div>`}</div>
   <div class="card" id="bl"><details ${pri.length?"":"open"}><summary style="cursor:pointer;font-weight:700;font-size:17px">Step 1 · Already memorised ${pri.length?`<span class="mute" style="font-weight:500">(${pm.juzDone.length} juz · ${pm.surahsDone.length} surahs recorded, tap to add more)</span>`:""}</summary>
     <p class="mute" style="margin:8px 0 4px">Record what ${esc(b.name)} knew when he joined, by juz, whole surah or part of a surah. Add each portion, one at a time.</p>
     ${selectors()}<button type="button" id="blsave" style="width:100%;margin-top:10px">Save as already memorised</button><div class="err" id="blerr"></div></details></div>
@@ -537,7 +541,7 @@ function boyView(pin,d,id,fresh){
   <div class="card"><h2>Weekly report for parent</h2><textarea id="wr" style="width:100%;height:170px;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px">${esc(weeklyText(b.name,b.entries,b.flags))}</textarea>
     <div class="row"><button id="cpy">Copy</button><a class="btn" style="text-align:center;text-decoration:none" target="_blank" href="https://wa.me/?text=${encodeURIComponent(weeklyText(b.name,b.entries,b.flags))}">WhatsApp</a></div></div>
   <div class="card"><h2>History</h2><div class="list">${hist.map(e=>`<div class="it"><div>${e.kind==="new"?"New":e.kind==="revision"?"Revision":"Already memorised"}: ${esc(EN[e.surah-1])} ${e.from}–${e.to}<br><span class="mute">${e.date} · ${e.mistakes} mistakes · ${e.status==="pending"?"by parent":e.source==="parent"?`by parent, verified by ${esc(e.by||"teacher")}`:`by ${esc(e.by||"teacher")}`}</span></div><div class="row" style="flex:0 0 auto;align-items:center"><span class="pill ${e.status==="verified"?"v":""}">${e.status}</span><button class="small ghost" data-del="${e.id}">Delete</button></div></div>`).join("")||"<p class='mute'>No entries yet.</p>"}</div></div>
-  <div class="card"><h2>Parent access</h2><div class="row"><button class="ghost" id="rp">Reset parent PIN</button><button class="ghost" id="ia">${b.active?"Mark inactive":"Mark active"}</button>${d.role==="admin"?`<button class="red" id="bdel">Delete student</button>`:""}</div><div id="rpo"></div><p class="mute">Code: <b>${b.code}</b></p></div>`;
+  <div class="card"><h2>Parent access</h2><div class="row"><button class="ghost" id="rp">Reset parent PIN</button><button class="ghost" id="ia">${b.active?"Mark inactive":"Mark active"}</button>${ADM(d)?`<button class="red" id="bdel">Delete student</button>`:""}</div><div id="rpo"></div><p class="mute">Code: <b>${b.code}</b></p></div>`;
   $("#bk").onclick=e=>{e.preventDefault();TAB="boys";teacherView(pin,d)};$("#out").onclick=()=>{S.del("tch");home()};bindViz(model(b.entries),b.flags,b.goal);
   const reload=r=>boyView(pin,r,id);
   app.querySelectorAll("[data-bas]").forEach(x=>x.onchange=async()=>{try{reload(await rpc("admin_assign",{p_pin:pin,p_boy:id,p_tid:x.dataset.bas,p_on:x.checked}));toast(x.checked?"Assigned":"Removed")}catch(e){toast(e.message);x.checked=!x.checked}});

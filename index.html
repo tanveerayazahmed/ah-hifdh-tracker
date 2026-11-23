@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AH Hifdh Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f3ec;--card:#fffdf8;--ink:#1d2b24;--mute:#6b7a71;--line:#e6dfcf;--g:#1f6f50;--g2:#2f9a6f;--g3:#8fd1ae;--gold:#c49a3a;--warn:#d98b2b;--fade:#c9c2b2;--red:#b4432f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:16px 14px 80px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.brand{font-weight:700;letter-spacing:.2px}.brand small{display:block;font-weight:500;color:var(--mute);font-size:12px}
+.ar{font-family:Amiri,serif;direction:rtl}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+h2{font-size:17px;margin:0 0 10px}h3{font-size:14px;margin:0 0 8px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+button,.btn{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--g);color:#fff;font-weight:600;cursor:pointer}
+button.ghost{background:transparent;color:var(--g);border:1px solid var(--line)}button.small{padding:6px 10px;font-size:13px}
+button.red{background:var(--red)}button:disabled{opacity:.5}
+input,select{font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;width:100%}
+label{display:block;font-size:13px;color:var(--mute);margin:8px 0 4px}
+.row{display:flex;gap:10px}.row>*{flex:1}.err{color:var(--red);font-size:14px;margin-top:8px}
+.hadith{text-align:center;padding:18px 14px}.hadith .ar{font-size:26px;color:var(--g)}.hadith p{margin:6px 0 0;color:var(--mute);font-size:13px}
+.big{font-size:30px;font-weight:700}.mute{color:var(--mute);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:#f3efe4;border-radius:10px;padding:10px;text-align:center}
+.stat b{display:block;font-size:20px}.stat span{font-size:12px;color:var(--mute)}
+.up{color:var(--g2)}.down{color:var(--warn)}
+.bar{height:12px;background:#ece6d7;border-radius:8px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--g),var(--g2))}
+.nudge{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}.nudge:first-of-type{border-top:0}
+.nudge .n{min-width:44px;height:44px;border-radius:50%;background:#e6f3ec;color:var(--g);display:flex;align-items:center;justify-content:center;font-weight:700}
+.map{display:grid;grid-template-columns:repeat(20,1fr);gap:2px}.map i{aspect-ratio:1;border-radius:2px;background:#ebe5d6;position:relative;cursor:pointer}
+.s3{background:var(--g)!important}.s2{background:var(--g2)!important}.s1{background:var(--g3)!important}.s0{background:var(--fade)!important;outline:1.5px solid var(--warn)}
+.part{background:linear-gradient(0deg,var(--g3) var(--p),#ebe5d6 var(--p))!important}
+.juzl{display:grid;grid-template-columns:repeat(20,1fr);font-size:9px;color:var(--mute);margin:6px 0 2px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--mute);margin-top:10px}.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.dots{display:flex;gap:6px}.dots span{flex:1;text-align:center;font-size:11px;color:var(--mute)}.dots b{display:block;height:26px;border-radius:8px;background:#ece6d7;margin-bottom:3px}.dots b.on{background:var(--g2)}.dots b.today{outline:2px solid var(--gold)}
+.list .it{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line)}.list .it:first-child{border-top:0}
+.pill{font-size:11px;padding:2px 8px;border-radius:20px;background:#f1ead8;color:#8a6a1f;white-space:nowrap}.pill.v{background:#e3f2ea;color:var(--g)}
+.tabs{display:flex;gap:6px;margin-bottom:12px;overflow:auto}.tabs button{background:#ece6d7;color:var(--ink)}.tabs button.on{background:var(--g);color:#fff}
+.stairs{display:flex;align-items:flex-end;gap:2px;height:90px;margin:8px 0}.stairs i{flex:1;background:#ece6d7;border-radius:3px 3px 0 0}.stairs i.on{background:linear-gradient(180deg,var(--gold),#a77f25)}
+.ms{display:flex;flex-wrap:wrap;gap:6px}.ms span{background:#fbf3df;border:1px solid #ecd9a6;color:#7b5b14;border-radius:20px;padding:3px 10px;font-size:12px}
+.code{font:600 22px ui-monospace,monospace;letter-spacing:2px;background:#f3efe4;padding:10px;border-radius:10px;text-align:center}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:9}
+.choose{display:grid;gap:12px}.choose button{padding:18px;font-size:16px}
+.tip{position:fixed;background:var(--ink);color:#fff;font-size:12px;padding:6px 9px;border-radius:8px;pointer-events:none;z-index:9;max-width:220px}
+a{color:var(--g)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const SB_URL="https://ekhjrerfjqmzyoaadxja.supabase.co",SB_KEY="sb_publishable_VMWXq1_J-pTkUlJCXHpQgw_tc716hBg";
+const Q={"ss":[1,8,294,494,670,790,955,1161,1236,1365,1474,1597,1708,1751,1803,1902,2030,2141,2251,2349,2484,2596,2674,2792,2856,2933,3160,3253,3341,3410,3470,3504,3534,3607,3661,3706,3789,3971,4059,4134,4219,4273,4326,4415,4474,4511,4546,4584,4613,4631,4676,4736,4785,4847,4902,4980,5076,5105,5127,5151,5164,5178,5189,5200,5218,5230,5242,5272,5324,5376,5420,5448,5476,5496,5552,5592,5623,5673,5713,5759,5801,5830,5849,5885,5910,5932,5949,5968,5994,6024,6044,6059,6080,6091,6099,6107,6126,6131,6139,6147,6158,6169,6177,6180,6189,6194,6198,6205,6208,6214,6217,6222,6226,6231],"sc":[7,286,200,176,120,165,206,75,129,109,123,111,43,52,99,128,111,110,98,135,112,78,118,64,77,227,93,88,69,60,34,30,73,54,45,83,182,88,75,85,54,53,89,59,37,35,38,29,18,45,60,49,62,55,78,96,29,22,24,13,14,11,11,18,12,12,30,52,52,44,28,28,20,56,40,31,50,40,46,42,29,19,36,25,22,17,19,26,30,20,15,21,11,8,8,19,5,8,8,11,11,8,3,9,5,4,7,3,6,3,5,4,5,6],"sa":["الفاتحة","البقرة","آل عمران","النساء","المائدة","الأنعام","الأعراف","الأنفال","التوبة","يونس","هود","يوسف","الرعد","إبراهيم","الحجر","النحل","الإسراء","الكهف","مريم","طه","الأنبياء","الحج","المؤمنون","النور","الفرقان","الشعراء","النمل","القصص","العنكبوت","الروم","لقمان","السجدة","الأحزاب","سبإ","فاطر","يس","الصافات","ص","الزمر","غافر","فصلت","الشورى","الزخرف","الدخان","الجاثية","الأحقاف","محمد","الفتح","الحجرات","ق","الذاريات","الطور","النجم","القمر","الرحمن","الواقعة","الحديد","المجادلة","الحشر","الممتحنة","الصف","الجمعة","المنافقون","التغابن","الطلاق","التحريم","الملك","القلم","الحاقة","المعارج","نوح","الجن","المزمل","المدثر","القيامة","الإنسان","المرسلات","النبإ","النازعات","عبس","التكوير","الانفطار","المطففين","الانشقاق","البروج","الطارق","الأعلى","الغاشية","الفجر","البلد","الشمس","الليل","الضحى","الشرح","التين","العلق","القدر","البينة","الزلزلة","العاديات","القارعة","التكاثر","العصر","الهمزة","الفيل","قريش","الماعون","الكوثر","الكافرون","النصر","المسد","الإخلاص","الفلق","الناس"],"pg":[1,8,13,24,32,37,45,56,65,69,77,84,91,96,101,109,113,120,127,134,142,149,153,161,171,177,184,189,194,198,204,210,218,223,227,232,238,241,245,253,256,260,264,267,272,277,282,289,290,294,303,309,316,323,331,339,346,355,364,371,377,385,394,402,409,415,426,434,442,447,451,459,467,474,480,488,494,500,505,508,513,517,520,527,531,538,545,553,559,568,573,580,585,588,595,599,607,615,621,628,634,641,648,656,664,669,672,675,679,683,687,693,701,706,711,715,720,727,734,740,746,752,759,765,773,778,783,790,798,808,817,825,834,842,849,858,863,871,880,884,891,900,908,914,921,927,932,936,941,947,955,966,977,985,992,998,1006,1012,1022,1028,1036,1042,1050,1059,1075,1085,1092,1098,1104,1110,1114,1118,1125,1133,1142,1150,1161,1169,1177,1186,1194,1201,1206,1213,1222,1230,1236,1242,1249,1256,1262,1267,1272,1276,1283,1290,1297,1304,1308,1315,1322,1329,1335,1342,1347,1353,1358,1365,1371,1379,1385,1390,1398,1407,1418,1426,1435,1443,1453,1462,1471,1479,1486,1493,1502,1511,1519,1527,1536,1545,1555,1562,1571,1582,1591,1601,1611,1619,1627,1634,1640,1649,1660,1666,1675,1683,1692,1700,1708,1713,1721,1726,1736,1742,1750,1756,1761,1769,1775,1784,1793,1803,1818,1834,1854,1873,1893,1908,1916,1928,1936,1944,1956,1966,1974,1981,1989,1995,2004,2012,2020,2030,2037,2047,2057,2068,2079,2088,2096,2105,2116,2126,2134,2145,2156,2161,2168,2175,2186,2194,2202,2215,2224,2238,2251,2262,2276,2289,2302,2315,2327,2346,2361,2386,2400,2413,2425,2436,2447,2462,2474,2484,2494,2508,2519,2528,2541,2556,2565,2574,2585,2596,2601,2611,2619,2626,2634,2642,2651,2660,2668,2674,2691,2701,2716,2733,2748,2763,2778,2792,2802,2812,2819,2823,2828,2835,2845,2850,2853,2858,2867,2876,2888,2899,2911,2923,2933,2952,2972,2993,3016,3044,3069,3092,3116,3139,3160,3173,3182,3195,3204,3215,3223,3236,3248,3258,3266,3274,3281,3288,3296,3303,3312,3323,3330,3337,3347,3355,3364,3371,3379,3386,3393,3404,3415,3425,3434,3442,3451,3460,3470,3481,3489,3498,3504,3515,3524,3534,3540,3549,3556,3564,3569,3577,3584,3588,3596,3607,3614,3621,3629,3638,3646,3655,3664,3672,3679,3691,3699,3705,3718,3733,3746,3760,3776,3789,3813,3840,3865,3891,3915,3942,3971,3987,3997,4013,4032,4054,4064,4069,4080,4090,4099,4106,4115,4126,4133,4141,4150,4159,4167,4174,4183,4192,4200,4211,4219,4230,4239,4248,4257,4265,4273,4283,4288,4295,4304,4317,4324,4336,4348,4359,4373,4386,4399,4415,4433,4454,4474,4487,4496,4506,4516,4525,4531,4539,4546,4557,4565,4575,4584,4593,4599,4607,4612,4617,4624,4631,4646,4666,4682,4706,4727,4750,4767,4785,4811,4829,4853,4874,4896,4918,4942,4969,4996,5030,5056,5079,5087,5094,5100,5105,5111,5116,5126,5130,5136,5143,5151,5156,5162,5169,5178,5186,5193,5200,5209,5218,5223,5230,5237,5242,5254,5268,5287,5314,5332,5358,5386,5415,5430,5448,5461,5476,5495,5513,5543,5571,5597,5617,5642,5673,5703,5728,5759,5801,5830,5855,5883,5910,5932,5964,5994,6017,6044,6073,6099,6126,6138,6156,6177,6194,6208,6222,6237],"jz":[1,149,260,386,517,641,751,900,1042,1201,1328,1479,1649,1803,2030,2215,2484,2674,2876,3215,3386,3564,3733,4090,4265,4511,4706,5105,5242,5673,6237]};
+const EN="Al-Fatihah,Al-Baqarah,Aal-Imran,An-Nisa,Al-Maidah,Al-Anam,Al-Araf,Al-Anfal,At-Tawbah,Yunus,Hud,Yusuf,Ar-Rad,Ibrahim,Al-Hijr,An-Nahl,Al-Isra,Al-Kahf,Maryam,Ta-Ha,Al-Anbiya,Al-Hajj,Al-Muminun,An-Nur,Al-Furqan,Ash-Shuara,An-Naml,Al-Qasas,Al-Ankabut,Ar-Rum,Luqman,As-Sajdah,Al-Ahzab,Saba,Fatir,Ya-Sin,As-Saffat,Sad,Az-Zumar,Ghafir,Fussilat,Ash-Shura,Az-Zukhruf,Ad-Dukhan,Al-Jathiyah,Al-Ahqaf,Muhammad,Al-Fath,Al-Hujurat,Qaf,Adh-Dhariyat,At-Tur,An-Najm,Al-Qamar,Ar-Rahman,Al-Waqiah,Al-Hadid,Al-Mujadilah,Al-Hashr,Al-Mumtahanah,As-Saff,Al-Jumuah,Al-Munafiqun,At-Taghabun,At-Talaq,At-Tahrim,Al-Mulk,Al-Qalam,Al-Haqqah,Al-Maarij,Nuh,Al-Jinn,Al-Muzzammil,Al-Muddaththir,Al-Qiyamah,Al-Insan,Al-Mursalat,An-Naba,An-Naziat,Abasa,At-Takwir,Al-Infitar,Al-Mutaffifin,Al-Inshiqaq,Al-Buruj,At-Tariq,Al-Ala,Al-Ghashiyah,Al-Fajr,Al-Balad,Ash-Shams,Al-Layl,Ad-Duha,Ash-Sharh,At-Tin,Al-Alaq,Al-Qadr,Al-Bayyinah,Az-Zalzalah,Al-Adiyat,Al-Qariah,At-Takathur,Al-Asr,Al-Humazah,Al-Fil,Quraysh,Al-Maun,Al-Kawthar,Al-Kafirun,An-Nasr,Al-Masad,Al-Ikhlas,Al-Falaq,An-Nas".split(",");
+
+const $=s=>document.querySelector(s),app=$("#app");
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const NA=6236,NP=604;
+const gid=(s,a)=>Q.ss[s-1]+a-1;
+function pageOf(id){let lo=0,hi=NP-1;while(lo<hi){const m=(lo+hi+1)>>1;if(Q.pg[m]<=id)lo=m;else hi=m-1}return lo+1}
+function surahOf(id){let lo=0,hi=113;while(lo<hi){const m=(lo+hi+1)>>1;if(Q.ss[m]<=id)lo=m;else hi=m-1}return lo+1}
+const juzOfPage=p=>{let j=1;for(let k=1;k<30;k++)if(Q.pg[p-1]>=Q.jz[k])j=k+1;return j};
+const sname=s=>`${s}. ${EN[s-1]}`;
+const DAY=864e5,today=()=>{const d=new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Kuwait"}));return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/DAY)};
+const dnum=s=>Math.floor(Date.parse(s+"T00:00:00Z")/DAY),dstr=n=>new Date(n*DAY).toISOString().slice(0,10);
+const weekStart=n=>n-((new Date(n*DAY).getUTCDay())%7); // Sunday
+const pageAyat=p=>Q.pg[p]-Q.pg[p-1];
+
+async function rpc(fn,args={}){
+  const r=await fetch(`${SB_URL}/rest/v1/rpc/${fn}`,{method:"POST",headers:{apikey:SB_KEY,"Content-Type":"application/json"},body:JSON.stringify(args)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.message||"Something went wrong");
+  if(j&&j.error)throw new Error(j.error);
+  return j;
+}
+function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+const S={get:k=>{try{return JSON.parse(sessionStorage.getItem(k))}catch(e){return null}},set:(k,v)=>{try{sessionStorage.setItem(k,JSON.stringify(v))}catch(e){}},del:k=>{try{sessionStorage.removeItem(k)}catch(e){}}};
+
+/* ---------- progress model ---------- */
+function model(entries){
+  const T=today(),mem=new Uint8Array(NA+1),last=new Int32Array(NA+1);
+  const ver=entries.filter(e=>e.status==="verified");
+  for(const e of ver){const d=dnum(e.date),a=gid(e.surah,e.from),b=gid(e.surah,e.to);
+    for(let i=a;i<=b;i++){if(e.kind!=="revision")mem[i]=1;if(d>last[i])last[i]=d}}
+  const pages=[];let total=0;
+  for(let p=1;p<=NP;p++){let c=0,mn=1e9;for(let i=Q.pg[p-1];i<Q.pg[p];i++)if(mem[i]){c++;total++;if(last[i]<mn)mn=last[i]}
+    const n=pageAyat(p),age=c?T-mn:null;pages.push({p,c,n,full:c===n,age,str:c===n?(age<=7?3:age<=14?2:age<=30?1:0):null})}
+  const full=pages.filter(x=>x.full).length;
+  // weekly
+  const pe=e=>{let s=0;for(let i=gid(e.surah,e.from);i<=gid(e.surah,e.to);i++)s+=1/pageAyat(pageOf(i));return s};
+  const weeks={};for(const e of ver){if(e.kind==="prior")continue;const w=weekStart(dnum(e.date));const o=weeks[w]||(weeks[w]={nw:0,rv:0,mk:0,days:new Set()});
+    const v=pe(e);if(e.kind==="new"){o.nw+=v;o.mk+=e.mistakes}else o.rv+=v;o.days.add(dnum(e.date))}
+  const wk=weekStart(T),cur=weeks[wk]||{nw:0,rv:0,mk:0,days:new Set()},prev=weeks[wk-7]||{nw:0,rv:0,mk:0,days:new Set()};
+  const best=Math.max(0,...Object.values(weeks).map(o=>o.nw));
+  const pendDays=new Set(entries.filter(e=>e.status==="pending").map(e=>dnum(e.date)));
+  // milestones
+  const surahsDone=[];for(let s=1;s<=114;s++){let ok=true;for(let i=Q.ss[s-1];i<Q.ss[s-1]+Q.sc[s-1];i++)if(!mem[i]){ok=false;break}if(ok)surahsDone.push(s)}
+  const juzDone=[];for(let j=1;j<=30;j++){let ok=true;for(let i=Q.jz[j-1];i<Q.jz[j];i++)if(!mem[i]){ok=false;break}if(ok)juzDone.push(j)}
+  // nudges
+  const nudges=[];const lastNew=[...ver].reverse().find(e=>e.kind==="new");
+  if(lastNew){const s=lastNew.surah,end=gid(s,lastNew.to);
+    let rs=0;for(let i=Q.ss[s-1];i<Q.ss[s-1]+Q.sc[s-1];i++)if(!mem[i])rs++;
+    const p=pageOf(Math.min(end+1,NA));const pg=pages[p-1];const rp=pg.n-pg.c;
+    if(rp>0)nudges.push({n:rp,t:`${rp} ${rp>1?"ayat":"ayah"} left to finish page ${p}`});
+    if(rs>0)nudges.push({n:rs,t:`${rs} ${rs>1?"ayat":"ayah"} left to complete Surah ${EN[s-1]}`});
+    const j=juzOfPage(p);let rj=0;for(let q=1;q<=NP;q++)if(juzOfPage(q)===j&&!pages[q-1].full)rj++;
+    if(rj>0)nudges.push({n:rj,t:`${rj} page${rj>1?"s":""} left to complete Juz ${j}`});}
+  const fading=pages.filter(x=>x.full&&x.str<=1).sort((a,b)=>b.age-a.age);
+  return {T,mem,pages,total,full,cur,prev,best,weeks,wk,pendDays,surahsDone,juzDone,nudges,fading,pe};
+}
+const surahsOnPage=p=>{const a=surahOf(Q.pg[p-1]),b=surahOf(Q.pg[p]-1);const r=[];for(let s=a;s<=b;s++)r.push(EN[s-1]);return r.join(", ")};
+const fmt=v=>v>=10?Math.round(v):Math.round(v*10)/10;
+
+function dashboard(name,entries,cls){
+  const m=model(entries);
+  const trend=(a,b)=>a>b?`<span class="up">▲ ${fmt(a-b)}</span>`:a<b?`<span class="down">▼ ${fmt(b-a)}</span>`:`<span class="mute">=</span>`;
+  const mpp=m.cur.nw?(m.cur.mk/m.cur.nw):null,mppPrev=m.prev.nw?(m.prev.mk/m.prev.nw):null;
+  const juzEq=m.full/20;
+  let stairs="";for(let i=0;i<30;i++)stairs+=`<i class="${i<Math.floor(juzEq)?"on":""}" style="height:${12+i*2.6}px${i===Math.floor(juzEq)?`;background:linear-gradient(0deg,var(--gold) ${(juzEq%1)*100}%,#ece6d7 ${(juzEq%1)*100}%)`:""}"></i>`;
+  let map="";for(const x of m.pages){const cls=x.full?"s"+x.str:x.c?"part":"";map+=`<i class="${cls}" ${x.c&&!x.full?`style="--p:${Math.round(x.c/x.n*100)}%"`:""} data-p="${x.p}"></i>`}
+  const days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  let dots="";for(let i=0;i<7;i++){const d=m.wk+i;dots+=`<span><b class="${m.cur.days.has(d)||m.pendDays.has(d)?"on":""} ${d===m.T?"today":""}"></b>${days[i]}</span>`}
+  const beat=m.prev.nw>0&&m.cur.nw<m.prev.nw?`Beat last week: ${fmt(m.prev.nw-m.cur.nw)} more page${m.prev.nw-m.cur.nw>1?"s":""} to go`:m.cur.nw>0&&m.cur.nw>=m.best?"This is your best week so far. Keep going!":"";
+  const pend=entries.filter(e=>e.status==="pending");
+  const cg=cls?Math.min(100,Math.round(cls.done/Math.max(cls.target,1)*100)):0;
+  return `
+  <div class="card hadith"><div class="ar">اقْرَأْ وَارْتَقِ</div><p>"Recite and rise": your rank is at the last ayah you recite. (Abu Dawud, Tirmidhi)</p></div>
+  <div class="card"><h3>${esc(name)}'s ascent</h3>
+    <div class="row" style="align-items:flex-end"><div><div class="big">${fmt(juzEq)} <span class="mute" style="font-size:15px">of 30 juz</span></div><div class="mute">${m.full} pages · ${m.total} ayat memorised</div></div></div>
+    <div class="stairs">${stairs}</div>
+    ${m.juzDone.length||m.surahsDone.length?`<div class="ms">${m.juzDone.map(j=>`<span>Juz ${j} complete</span>`).join("")}${m.surahsDone.length?`<span>${m.surahsDone.length} surah${m.surahsDone.length>1?"s":""} complete</span>`:""}</div>`:""}
+  </div>
+  ${m.nudges.length?`<div class="card"><h3>So close</h3>${m.nudges.slice(0,3).map(n=>`<div class="nudge"><div class="n">${n.n}</div><div>${n.t}</div></div>`).join("")}</div>`:""}
+  <div class="card"><h3>This week vs last week</h3>
+    <div class="stats">
+      <div class="stat"><b>${fmt(m.cur.nw)}</b><span>new pages ${trend(m.cur.nw,m.prev.nw)}</span></div>
+      <div class="stat"><b>${fmt(m.cur.rv)}</b><span>pages revised ${trend(m.cur.rv,m.prev.rv)}</span></div>
+      <div class="stat"><b>${mpp===null?"–":fmt(mpp)}</b><span>mistakes / page ${mpp!==null&&mppPrev!==null?(mpp<mppPrev?'<span class="up">better</span>':mpp>mppPrev?'<span class="down">more</span>':""):""}</span></div>
+    </div>
+    ${beat?`<p style="margin:10px 0 0;font-weight:600;color:var(--g)">${beat}</p>`:""}
+    <p class="mute" style="margin:8px 0 4px">Days practised this week</p><div class="dots">${dots}</div>
+    <p class="mute" style="margin:8px 0 0">Personal best week: ${fmt(m.best)} new pages</p>
+  </div>
+  ${m.fading.length?`<div class="card"><h3>Needs revision before it fades</h3><div class="list">${m.fading.slice(0,5).map(x=>`<div class="it"><div><b>Page ${x.p}</b> <span class="mute">${esc(surahsOnPage(x.p))}</span></div><span class="pill">${x.age} days</span></div>`).join("")}</div>${m.fading.length>5?`<p class="mute">+${m.fading.length-5} more pages</p>`:""}</div>`:""}
+  <div class="card"><h3>The Mushaf: 604 pages</h3>
+    <div class="map" id="map">${map}</div>
+    <div class="legend"><span><i style="background:var(--g)"></i>Strong (≤7 days)</span><span><i style="background:var(--g2)"></i>Good (≤14)</span><span><i style="background:var(--g3)"></i>Weak (≤30)</span><span><i style="background:var(--fade);outline:1.5px solid var(--warn)"></i>Fading (30+)</span><span><i style="background:linear-gradient(0deg,var(--g3) 50%,#ebe5d6 50%)"></i>In progress</span></div>
+    <p class="mute" style="margin:8px 0 0">Each square is one page. Pages fade if not revised. Tap a square for details.</p>
+  </div>
+  ${cls?`<div class="card"><h3>${esc(cls.label)} · whole class</h3><div class="bar"><i style="width:${cg}%"></i></div><p class="mute" style="margin:6px 0 0">${cls.done} of ${cls.target} new ayat together since ${cls.start} (${cg}%)</p></div>`:""}
+  ${pend.length?`<div class="card"><h3>Waiting for teacher</h3><div class="list">${pend.map(e=>`<div class="it"><div>${e.kind==="new"?"New":"Revision"}: ${esc(EN[e.surah-1])} ${e.from}–${e.to} <span class="mute">· ${e.date}</span></div><span class="pill">pending</span></div>`).join("")}</div></div>`:""}`;
+}
+function bindMap(entries){
+  const m=model(entries),map=$("#map");if(!map)return;let tip;
+  map.onclick=ev=>{const p=+ev.target.dataset.p;if(!p)return;const x=m.pages[p-1];tip&&tip.remove();tip=document.createElement("div");tip.className="tip";
+    tip.innerHTML=`Page ${p} · Juz ${juzOfPage(p)}<br>${esc(surahsOnPage(p))}<br>${x.c}/${x.n} ayat${x.c?` · last practised ${x.age} day${x.age===1?"":"s"} ago`:""}`;
+    document.body.appendChild(tip);const r=ev.target.getBoundingClientRect();tip.style.left=Math.max(8,Math.min(innerWidth-230,r.left-100))+"px";tip.style.top=(r.top+scrollY-70)+"px";setTimeout(()=>tip&&tip.remove(),3500)};
+}
+function weeklyText(name,entries){
+  const m=model(entries);const ver=entries.filter(e=>e.status==="verified"&&e.kind!=="prior"&&dnum(e.date)>=m.wk);
+  const nw=ver.filter(e=>e.kind==="new").map(e=>`${EN[e.surah-1]} ${e.from}-${e.to}`);
+  let t=`Assalamu alaikum. Weekly Hifdh update for ${name}:\n\nNew memorisation: ${nw.length?nw.join(", "):"none this week"} (${fmt(m.cur.nw)} pages)\nRevision: ${fmt(m.cur.rv)} pages\nMistakes per page: ${m.cur.nw?fmt(m.cur.mk/m.cur.nw):"-"}\nDays practised: ${m.cur.days.size}\nTotal: ${fmt(m.full/20)} juz (${m.full} pages)`;
+  if(m.fading.length)t+=`\n\nPlease revise at home: ${m.fading.slice(0,3).map(x=>`page ${x.p} (${surahsOnPage(x.p)})`).join("; ")}`;
+  if(m.nudges[0])t+=`\nNext target: ${m.nudges[0].t}`;
+  return t+"\n\nJazakAllahu khairan";
+}
+function entryForm(id,kinds){
+  let o="";for(let s=1;s<=114;s++)o+=`<option value="${s}">${sname(s)}</option>`;
+  return `<div id="${id}"><div class="row"><div><label>Type</label><select name="kind">${kinds.map(k=>`<option value="${k[0]}">${k[1]}</option>`).join("")}</select></div>
+  <div><label>Date</label><input type="date" name="date" value="${dstr(today())}"></div></div>
+  <label>Surah</label><select name="surah">${o}</select>
+  <div class="row"><div><label>From ayah</label><input type="number" name="from" min="1" value="1" inputmode="numeric"></div><div><label>To ayah</label><input type="number" name="to" min="1" value="1" inputmode="numeric"></div></div>
+  <div class="row" style="margin-top:6px"><button type="button" class="ghost small" data-whole>Whole surah</button><span class="mute" data-info style="align-self:center"></span></div>
+  <label>Mistakes</label><div class="row"><button type="button" class="ghost" data-m="-1" style="flex:0 0 52px">−</button><input type="number" name="mistakes" value="0" min="0" style="text-align:center"><button type="button" class="ghost" data-m="1" style="flex:0 0 52px">+</button></div>
+  <button type="button" data-save style="width:100%;margin-top:12px">Save</button><div class="err" data-err></div></div>`;
+}
+function bindForm(id,onSave){
+  const f=$("#"+id),g=n=>f.querySelector(`[name=${n}]`);
+  const info=()=>{const s=+g("surah").value;f.querySelector("[data-info]").textContent=`${Q.sc[s-1]} ayat in this surah`};
+  g("surah").onchange=()=>{info();g("from").value=1;g("to").value=1};info();
+  f.querySelector("[data-whole]").onclick=()=>{g("from").value=1;g("to").value=Q.sc[+g("surah").value-1]};
+  f.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{g("mistakes").value=Math.max(0,(+g("mistakes").value||0)+ +b.dataset.m)});
+  f.querySelector("[data-save]").onclick=async ev=>{const s=+g("surah").value,a=+g("from").value,b=+g("to").value,err=f.querySelector("[data-err]");err.textContent="";
+    if(!(a>=1&&b>=a&&b<=Q.sc[s-1])){err.textContent=`Check the ayah numbers (1–${Q.sc[s-1]}, "to" not less than "from").`;return}
+    ev.target.disabled=true;try{await onSave({kind:g("kind").value,surah:s,from:a,to:b,mistakes:+g("mistakes").value||0,date:g("date").value})}catch(e){err.textContent=e.message}ev.target.disabled=false};
+}
+
+/* ---------- views ---------- */
+const head=(sub,out)=>`<header><div class="brand">AH Hifdh Tracker<small>${sub}</small></div>${out?`<button class="ghost small" id="out">Log out</button>`:""}</header>`;
+function home(){
+  app.innerHTML=head("Al Hikmah Boys")+`<div class="card hadith"><div class="ar" style="font-size:30px">اقْرَأْ وَارْتَقِ</div><p>Recite and rise</p></div>
+  <div class="choose"><button id="gp">I'm a parent</button><button class="ghost" id="gt">I'm the teacher</button></div>`;
+  $("#gp").onclick=()=>parentLogin();$("#gt").onclick=()=>teacherLogin();
+}
+function parentLogin(){
+  const s=S.get("par");if(s)return parentView(s);
+  app.innerHTML=head("Parent login")+`<div class="card"><h2>Parent login</h2><p class="mute">Use the code and PIN the teacher gave you.</p>
+  <label>Son's code</label><input id="pc" placeholder="AHB123" autocapitalize="characters"><label>PIN</label><input id="pp" type="password" inputmode="numeric" maxlength="8">
+  <button id="pl" style="width:100%;margin-top:12px">Open</button><div class="err" id="pe"></div><p><a href="#" id="back">← Back</a></p></div>`;
+  $("#back").onclick=e=>{e.preventDefault();home()};
+  $("#pl").onclick=async()=>{const c={code:$("#pc").value.trim().toUpperCase(),pin:$("#pp").value.trim()};try{const d=await rpc("parent_get",{p_code:c.code,p_pin:c.pin});S.set("par",c);parentView(c,d)}catch(e){$("#pe").textContent=e.message}};
+}
+async function parentView(c,d){
+  try{d=d||await rpc("parent_get",{p_code:c.code,p_pin:c.pin})}catch(e){S.del("par");return parentLogin()}
+  app.innerHTML=head(esc(d.boy.name),1)+`<button id="lg" style="width:100%;margin-bottom:12px;padding:14px">+ Log today's Hifdh</button><div class="card" id="lgc" style="display:none"><h2>Log today's Hifdh</h2>${entryForm("pf",[["new","New lesson"],["revision","Revision"]])}<p class="mute" style="margin:8px 0 0">The teacher checks each entry before it counts.</p></div>`+dashboard(d.boy.name,d.entries,d.class);
+  $("#out").onclick=()=>{S.del("par");home()};bindMap(d.entries);$("#lg").onclick=()=>{$("#lgc").style.display="block";$("#lg").style.display="none"};
+  bindForm("pf",async v=>{const r=await rpc("parent_add",{p_code:c.code,p_pin:c.pin,p_kind:v.kind,p_surah:v.surah,p_from:v.from,p_to:v.to,p_mistakes:v.mistakes,p_date:v.date});toast("Saved. Waiting for teacher to verify.");parentView(c,r)});
+}
+async function teacherLogin(){
+  const s=S.get("tch");if(s)return teacherView(s);
+  let st;try{st=await rpc("teacher_status")}catch(e){app.innerHTML=head("")+`<div class="card err">${esc(e.message)}</div>`;return}
+  app.innerHTML=head("Teacher")+`<div class="card"><h2>${st.setup?"Teacher login":"First-time setup"}</h2>${st.setup?"":"<p class='mute'>Choose a teacher PIN (at least 6 digits). Keep it private.</p>"}
+  <label>Teacher PIN</label><input id="tp" type="password" inputmode="numeric">${st.setup?"":`<label>Repeat PIN</label><input id="tp2" type="password" inputmode="numeric">`}
+  <button id="tl" style="width:100%;margin-top:12px">${st.setup?"Open":"Set PIN"}</button><div class="err" id="te"></div><p><a href="#" id="back">← Back</a></p></div>`;
+  $("#back").onclick=e=>{e.preventDefault();home()};
+  $("#tl").onclick=async()=>{const pin=$("#tp").value.trim();try{if(!st.setup){if(pin!==$("#tp2").value.trim())throw new Error("PINs don't match");await rpc("teacher_setup",{p_pin:pin})}
+    const d=await rpc("teacher_get",{p_pin:pin});S.set("tch",pin);teacherView(pin,d)}catch(e){$("#te").textContent=e.message}};
+}
+let TAB="verify";
+async function teacherView(pin,d){
+  try{d=d||await rpc("teacher_get",{p_pin:pin})}catch(e){S.del("tch");return teacherLogin()}
+  const pend=[];for(const b of d.boys)for(const e of b.entries)if(e.status==="pending")pend.push({...e,boy:b});
+  pend.sort((a,b)=>a.date<b.date?-1:1);
+  const tabs=`<div class="tabs"><button data-t="verify" class="${TAB==="verify"?"on":""}">To verify (${pend.length})</button><button data-t="boys" class="${TAB==="boys"?"on":""}">Boys (${d.boys.filter(b=>b.active).length})</button><button data-t="class" class="${TAB==="class"?"on":""}">Class &amp; settings</button></div>`;
+  let body="";
+  if(TAB==="verify")body=pend.length?`<div class="card list">${pend.map(e=>`<div class="it" style="flex-wrap:wrap"><div style="flex:1 1 200px"><b>${esc(e.boy.name)}</b> · ${e.kind==="new"?"New":"Revision"}<br>${esc(sname(e.surah))} ${e.from}–${e.to} <span class="mute">· ${e.date}</span></div>
+    <div class="row" style="flex:0 0 auto;align-items:center"><input type="number" min="0" value="${e.mistakes}" data-mk="${e.id}" style="width:64px" title="Mistakes"><button class="small" data-v="${e.id}">Verify</button><button class="small ghost" data-r="${e.id}">Reject</button></div></div>`).join("")}</div>`
+    :`<div class="card mute">Nothing waiting. All entries are verified.</div>`;
+  if(TAB==="boys"){
+    body=`<div class="card"><h2>Add a boy</h2><div class="row"><input id="nb" placeholder="Full name"><button id="ab" style="flex:0 0 auto">Add</button></div><div id="newcode"></div></div><div class="card list">`+
+    d.boys.map(b=>{const m=model(b.entries);const lastD=b.entries.filter(e=>e.status==="verified"&&e.kind!=="prior").map(e=>dnum(e.date)).sort().pop();
+      return `<div class="it" style="cursor:pointer" data-b="${b.id}"><div><b>${esc(b.name)}</b>${b.active?"":" <span class='pill'>inactive</span>"}<br><span class="mute">${fmt(m.full/20)} juz · this week ${fmt(m.cur.nw)} new pg · ${m.fading.length} fading · ${lastD?`last ${m.T-lastD}d ago`:"no sessions yet"}</span></div><span class="mute">›</span></div>`}).join("")+`</div>`;
+  }
+  if(TAB==="class")body=`<div class="card"><h2>Class goal</h2><p class="mute">The boys see one shared bar, not a ranking. Counts verified new ayat from all boys since the start date.</p>
+    <label>Goal name</label><input id="gl" value="${esc(d.class.label)}"><div class="row"><div><label>Target (ayat)</label><input id="gtg" type="number" value="${d.class.target}"></div><div><label>Start date</label><input id="gs" type="date" value="${d.class.start}"></div></div>
+    <div class="bar" style="margin-top:12px"><i style="width:${Math.min(100,d.class.done/d.class.target*100)}%"></i></div><p class="mute">${d.class.done} of ${d.class.target}</p><button id="sg">Save goal</button></div>
+    <div class="card"><h2>Change teacher PIN</h2><div class="row"><input id="np" type="password" inputmode="numeric" placeholder="New PIN (6+ digits)"><button id="cp" style="flex:0 0 auto">Change</button></div></div>`;
+  app.innerHTML=head("Teacher",1)+tabs+body;
+  $("#out").onclick=()=>{S.del("tch");home()};
+  app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{TAB=b.dataset.t;teacherView(pin,d)});
+  app.querySelectorAll("[data-v],[data-r]").forEach(b=>b.onclick=async()=>{b.disabled=true;const id=+(b.dataset.v||b.dataset.r);
+    try{const r=await rpc("teacher_review",{p_pin:pin,p_id:id,p_status:b.dataset.v?"verified":"rejected",p_mistakes:+app.querySelector(`[data-mk="${id}"]`).value||0});teacherView(pin,r)}catch(e){toast(e.message);b.disabled=false}});
+  app.querySelectorAll("[data-b]").forEach(x=>x.onclick=()=>boyView(pin,d,x.dataset.b));
+  if($("#ab"))$("#ab").onclick=async()=>{try{const r=await rpc("teacher_add_boy",{p_pin:pin,p_name:$("#nb").value});const nm=$("#nb").value;const d2=await rpc("teacher_get",{p_pin:pin});teacherView(pin,d2);
+    $("#newcode").innerHTML=`<p>Give these to ${esc(nm)}'s parent (shown once):</p><div class="row"><div><label>Code</label><div class="code">${r.code}</div></div><div><label>PIN</label><div class="code">${r.pin}</div></div></div>`}catch(e){toast(e.message)}};
+  if($("#sg"))$("#sg").onclick=async()=>{try{const r=await rpc("teacher_set_goal",{p_pin:pin,p_label:$("#gl").value,p_target:+$("#gtg").value,p_start:$("#gs").value});toast("Goal saved");teacherView(pin,r)}catch(e){toast(e.message)}};
+  if($("#cp"))$("#cp").onclick=async()=>{const n=$("#np").value.trim();try{await rpc("teacher_change_pin",{p_pin:pin,p_new:n});S.set("tch",n);toast("PIN changed");teacherView(n)}catch(e){toast(e.message)}};
+}
+function boyView(pin,d,id){
+  const b=d.boys.find(x=>x.id===id);if(!b)return teacherView(pin);
+  let so="";for(let s=1;s<=114;s++)so+=`<option value="${s}">${sname(s)}</option>`;
+  const hist=[...b.entries].reverse().slice(0,25);
+  app.innerHTML=head(esc(b.name),1)+`<p><a href="#" id="bk">← All boys</a></p>
+  <div class="card"><h2>Add a verified entry</h2>${entryForm("tf",[["new","New lesson"],["revision","Revision"]])}</div>
+  ${dashboard(b.name,b.entries,d.class)}
+  <div class="card"><h2>Weekly report for parent</h2><textarea id="wr" style="width:100%;height:170px;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px">${esc(weeklyText(b.name,b.entries))}</textarea>
+    <div class="row"><button id="cpy">Copy</button><a class="btn" style="text-align:center;text-decoration:none" target="_blank" href="https://wa.me/?text=${encodeURIComponent(weeklyText(b.name,b.entries))}">WhatsApp</a></div></div>
+  <div class="card"><h2>Already memorised (before using the tracker)</h2><p class="mute">Marks whole surahs as memorised, e.g. 78 to 114 for Juz Amma.</p>
+    <div class="row"><div><label>From surah</label><select id="ps1">${so}</select></div><div><label>To surah</label><select id="ps2">${so}</select></div></div>
+    <button id="pr" style="margin-top:10px">Add</button></div>
+  <div class="card"><h2>History</h2><div class="list">${hist.map(e=>`<div class="it"><div>${e.kind==="new"?"New":e.kind==="revision"?"Revision":"Already memorised"}: ${esc(EN[e.surah-1])} ${e.from}–${e.to}<br><span class="mute">${e.date} · ${e.mistakes} mistakes · by ${e.source}</span></div><div class="row" style="flex:0 0 auto;align-items:center"><span class="pill ${e.status==="verified"?"v":""}">${e.status}</span><button class="small ghost" data-del="${e.id}">Delete</button></div></div>`).join("")||"<p class='mute'>No entries yet.</p>"}</div></div>
+  <div class="card"><h2>Parent access</h2><div class="row"><button class="ghost" id="rp">Reset parent PIN</button><button class="ghost" id="ia">${b.active?"Mark inactive":"Mark active"}</button></div><div id="rpo"></div><p class="mute">Code: <b>${b.code}</b></p></div>`;
+  $("#ps1").value=78;$("#ps2").value=114;
+  $("#bk").onclick=e=>{e.preventDefault();TAB="boys";teacherView(pin,d)};$("#out").onclick=()=>{S.del("tch");home()};bindMap(b.entries);
+  const reload=r=>boyView(pin,r,id);
+  bindForm("tf",async v=>{const r=await rpc("teacher_add",{p_pin:pin,p_boy:id,p_kind:v.kind,p_surah:v.surah,p_from:v.from,p_to:v.to,p_mistakes:v.mistakes,p_date:v.date});toast("Saved");reload(r)});
+  $("#cpy").onclick=()=>{navigator.clipboard.writeText($("#wr").value).then(()=>toast("Copied"),()=>{$("#wr").select();toast("Select and copy")})};
+  $("#pr").onclick=async()=>{const a=+$("#ps1").value,z=+$("#ps2").value;if(z<a)return toast("'To' must be after 'From'");if(!confirm(`Mark surahs ${a} to ${z} as already memorised?`))return;try{reload(await rpc("teacher_add_prior",{p_pin:pin,p_boy:id,p_from_surah:a,p_to_surah:z}))}catch(e){toast(e.message)}};
+  app.querySelectorAll("[data-del]").forEach(x=>x.onclick=async()=>{if(!confirm("Delete this entry?"))return;try{reload(await rpc("teacher_delete",{p_pin:pin,p_id:+x.dataset.del}))}catch(e){toast(e.message)}});
+  $("#rp").onclick=async()=>{if(!confirm("Create a new PIN? The old one will stop working."))return;try{const r=await rpc("teacher_reset_pin",{p_pin:pin,p_boy:id});$("#rpo").innerHTML=`<p>New PIN (shown once):</p><div class="code">${r.pin}</div>`}catch(e){toast(e.message)}};
+  $("#ia").onclick=async()=>{try{reload(await rpc("teacher_update_boy",{p_pin:pin,p_boy:id,p_name:null,p_active:!b.active}))}catch(e){toast(e.message)}};
+}
+home();
+</script>
+</body>
+</html>
